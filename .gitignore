@@ -5,3 +5,6 @@ out/
 gradle
 .vertx
 build/
+
+# Sqlite base
+poller.db
