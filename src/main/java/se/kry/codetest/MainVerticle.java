@@ -60,16 +60,20 @@ public class MainVerticle extends AbstractVerticle {
 
         PollService newService = PollService.fromJson(jsonBody);
         if (newService.isComplete()) {
-            serviceRepository.createOne(newService)
-                    .setHandler(repoResponse -> {
-                        if (repoResponse.failed()) {
-                            System.out.println("Error: " + repoResponse.cause().getMessage());
-                            repoResponse.cause().printStackTrace();
-                            req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
-                        } else req.response().setStatusCode(201).end();
-                    });
+            if (newService.isUrlValid()) {
+                serviceRepository.createOne(newService)
+                        .setHandler(repoResponse -> {
+                            if (repoResponse.failed()) {
+                                System.out.println("Error: " + repoResponse.cause().getMessage());
+                                repoResponse.cause().printStackTrace();
+                                req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
+                            } else req.response().setStatusCode(201).end();
+                        });
+            } else {
+                req.response().setStatusCode(400).end("The provided url is invalid");
+            }
         } else {
-            req.response().setStatusCode(400).end();
+            req.response().setStatusCode(400).end("url and name are mandatory");
         }
     }
 

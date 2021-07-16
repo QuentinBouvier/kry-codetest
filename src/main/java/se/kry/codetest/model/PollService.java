@@ -2,6 +2,7 @@ package se.kry.codetest.model;
 
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.validator.routines.UrlValidator;
 
 import java.util.Date;
 
@@ -58,6 +59,12 @@ public class PollService {
                 .put("name", name)
                 .put("created_at", null != createdAt ? createdAt.getTime() : null)
                 .put("status", status);
+    }
+
+    public boolean isUrlValid() {
+        String[] schemes = {"http","https"};
+        UrlValidator urlValidator = new UrlValidator(schemes);
+        return urlValidator.isValid(this.getUrl());
     }
 
     /**
