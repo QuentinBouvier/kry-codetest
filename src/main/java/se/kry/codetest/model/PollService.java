@@ -1,6 +1,7 @@
 package se.kry.codetest.model;
 
 import io.vertx.core.json.JsonObject;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.Date;
 
@@ -48,8 +49,7 @@ public class PollService {
      * @return True if OK
      */
     public boolean isComplete() {
-        return null != url
-                && null != name;
+        return ObjectUtils.allNotNull(url, name);
     }
 
     public JsonObject toJson() {

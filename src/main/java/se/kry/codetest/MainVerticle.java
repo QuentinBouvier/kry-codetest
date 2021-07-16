@@ -6,31 +6,31 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import se.kry.codetest.model.PollService;
 import se.kry.codetest.repository.ServiceRepository;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class MainVerticle extends AbstractVerticle {
 
-    private HashMap<String, String> services = new HashMap<>();
-    private DBConnector connector;
     private ServiceRepository serviceRepository;
-    private BackgroundPoller poller = new BackgroundPoller();
+    private BackgroundPoller poller;
 
     @Override
     public void start(Future<Void> startFuture) {
-        connector = new DBConnector(vertx);
+        DBConnector connector = new DBConnector(vertx);
+        WebClient webClient = WebClient.create(vertx);
+
         serviceRepository = new ServiceRepository(connector);
+        poller = new BackgroundPoller(serviceRepository, webClient);
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-        services.put("https://www.kry.se", "UNKNOWN");
-        vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices(services));
+        vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices());
         setRoutes(router);
 
         vertx
