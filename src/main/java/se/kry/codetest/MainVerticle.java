@@ -50,6 +50,7 @@ public class MainVerticle extends AbstractVerticle {
         router.route("/*").handler(StaticHandler.create());
         router.get("/service").handler(this::serviceGet);
         router.post("/service").handler(this::servicePost);
+        router.delete("/service/:name").handler(this::serviceDelete);
     }
 
     private void servicePost(RoutingContext req) {
@@ -65,8 +66,7 @@ public class MainVerticle extends AbstractVerticle {
                             System.out.println("Error: " + repoResponse.cause().getMessage());
                             repoResponse.cause().printStackTrace();
                             req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
-                        }
-                        else req.response().setStatusCode(201).end();
+                        } else req.response().setStatusCode(201).end();
                     });
         } else {
             req.response().setStatusCode(400).end();
@@ -92,6 +92,24 @@ public class MainVerticle extends AbstractVerticle {
             }
 
         });
+    }
+
+    private void serviceDelete(RoutingContext req) {
+        String serviceName = req.pathParam("name");
+
+        if (null == serviceName) {
+            req.response().setStatusCode(400).end("name path param is mandatory");
+        } else {
+            serviceRepository.deleteByName(serviceName).setHandler(repoResult -> {
+                if (repoResult.succeeded()) {
+                    req.response().setStatusCode(204).end();
+                } else {
+                    System.out.println("Error: " + repoResult.cause().getMessage());
+                    repoResult.cause().printStackTrace();
+                    req.response().setStatusCode(500).end(repoResult.cause().getMessage());
+                }
+            });
+        }
     }
 }
 
