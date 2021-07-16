@@ -46,18 +46,4 @@ public class DBConnector {
     });
     return queryResultFuture;
   }
-
-  public ResultSet queryExecutor(String query) throws InterruptedException {
-    return queryExecutor(query, new JsonArray());
-  }
-
-  public ResultSet queryExecutor(String query, JsonArray params) throws InterruptedException {
-
-    Future<ResultSet> queryFuture = query(query, params);
-    while (!queryFuture.isComplete()) {
-      Thread.sleep(50);
-    }
-
-    return queryFuture.result();
-  }
 }
