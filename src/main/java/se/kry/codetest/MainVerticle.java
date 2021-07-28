@@ -19,6 +19,15 @@ public class MainVerticle extends AbstractVerticle {
 
     private ServiceRepository serviceRepository;
     private BackgroundPoller poller;
+    private final Integer port;
+
+    public MainVerticle() {
+        this.port = 8080;
+    }
+
+    public MainVerticle(int port) {
+        this.port = port;
+    }
 
     @Override
     public void start(Future<Void> startFuture) {
@@ -36,7 +45,7 @@ public class MainVerticle extends AbstractVerticle {
         vertx
                 .createHttpServer()
                 .requestHandler(router)
-                .listen(8082, result -> {
+                .listen(this.port, result -> {
                     if (result.succeeded()) {
                         System.out.println("KRY code test service started");
                         startFuture.complete();
@@ -94,7 +103,6 @@ public class MainVerticle extends AbstractVerticle {
                         .setStatusCode(200)
                         .end(new JsonArray(jsonServices).encode());
             }
-
         });
     }
 

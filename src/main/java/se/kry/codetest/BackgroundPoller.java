@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class BackgroundPoller {
-  private ServiceRepository servicesRepository;
-  private WebClient webClient;
+  private final ServiceRepository servicesRepository;
+  private final WebClient webClient;
 
   public BackgroundPoller(ServiceRepository repository, WebClient webClient) {
     this.servicesRepository = repository;
