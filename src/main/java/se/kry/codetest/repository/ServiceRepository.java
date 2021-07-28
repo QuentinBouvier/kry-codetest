@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
 import se.kry.codetest.DBConnector;
-import se.kry.codetest.model.PollService;
+import se.kry.codetest.model.ServiceStatus;
 
 import java.security.InvalidParameterException;
 import java.util.Arrays;
@@ -26,15 +26,15 @@ public class ServiceRepository {
      * @param name The name to search against
      * @return A future holding a PollService instance or null if no service is found
      */
-    public Future<PollService> findByName(String name) {
+    public Future<ServiceStatus> findByName(String name) {
         Future<ResultSet> query = dbConnector.query("SELECT * FROM service WHERE name = ? LIMIT 1", new JsonArray(Collections.singletonList(name)));
 
-        Future<PollService> futureResult = Future.future();
+        Future<ServiceStatus> futureResult = Future.future();
 
         query.setHandler(queryResult -> {
             if (queryResult.succeeded()) {
                 if (queryResult.result().getNumRows() > 0) {
-                    futureResult.complete(PollService.fromJson(queryResult.result().getRows().get(0)));
+                    futureResult.complete(ServiceStatus.fromJson(queryResult.result().getRows().get(0)));
                 } else {
                     futureResult.complete(null);
                 }
@@ -51,16 +51,16 @@ public class ServiceRepository {
      *
      * @return A future holding the list of found PollService
      */
-    public Future<List<PollService>> findAll() {
+    public Future<List<ServiceStatus>> findAll() {
         Future<ResultSet> query = dbConnector.query("SELECT * FROM service");
 
-        Future<List<PollService>> futureResult = Future.future();
+        Future<List<ServiceStatus>> futureResult = Future.future();
 
         query.setHandler(queryResult -> {
             if (queryResult.succeeded()) {
                 futureResult.complete(
                         queryResult.result().getRows().stream()
-                                .map(PollService::fromJson).collect(Collectors.toList()));
+                                .map(ServiceStatus::fromJson).collect(Collectors.toList()));
             } else {
                 futureResult.fail(queryResult.cause());
             }
@@ -76,8 +76,8 @@ public class ServiceRepository {
      * @return A future holding the success of the operation
      * @throws InvalidParameterException A service with this name already exists
      */
-    public Future<Void> createOne(PollService service) {
-        Future<PollService> findQuery = findByName(service.getName());
+    public Future<Void> createOne(ServiceStatus service) {
+        Future<ServiceStatus> findQuery = findByName(service.getName());
 
         Future<Void> futureResult = Future.future();
 
@@ -114,7 +114,7 @@ public class ServiceRepository {
      * @throws InvalidParameterException No service with this name was found
      */
     public Future<Void> setStatus(String name, String status) {
-        Future<PollService> findQuery = findByName(name);
+        Future<ServiceStatus> findQuery = findByName(name);
 
         Future<Void> futureResult = Future.future();
 

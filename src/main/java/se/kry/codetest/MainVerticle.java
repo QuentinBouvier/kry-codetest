@@ -9,7 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import se.kry.codetest.model.PollService;
+import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceRepository;
 
 import java.util.List;
@@ -58,7 +58,7 @@ public class MainVerticle extends AbstractVerticle {
 
         System.out.println("POST /service HTTP received with body: " + jsonBody.toString());
 
-        PollService newService = PollService.fromJson(jsonBody);
+        ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
         if (newService.isComplete()) {
             if (newService.isUrlValid()) {
                 serviceRepository.createOne(newService)
@@ -86,7 +86,7 @@ public class MainVerticle extends AbstractVerticle {
             } else {
                 List<JsonObject> jsonServices = repoResult.result()
                         .stream()
-                        .map(PollService::toJson)
+                        .map(ServiceStatus::toJson)
                         .collect(Collectors.toList());
 
                 req.response()

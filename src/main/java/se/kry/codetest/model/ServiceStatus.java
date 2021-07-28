@@ -6,7 +6,7 @@ import org.apache.commons.validator.routines.UrlValidator;
 
 import java.util.Date;
 
-public class PollService {
+public class ServiceStatus {
     private String url;
     private String name;
     private Date createdAt;
@@ -73,8 +73,8 @@ public class PollService {
      * @param source The json providing the values
      * @return A PollService Instance
      */
-    public static PollService fromJson(JsonObject source) {
-        PollService output = new PollService();
+    public static ServiceStatus fromJson(JsonObject source) {
+        ServiceStatus output = new ServiceStatus();
         output.setName(source.getString("name"));
         output.setUrl(source.getString("url"));
         if (null != source.getInteger("created_at")) {
