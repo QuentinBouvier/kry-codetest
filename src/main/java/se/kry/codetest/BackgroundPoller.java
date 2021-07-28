@@ -42,7 +42,7 @@ public class BackgroundPoller {
             .ssl(true)
             .send(res -> {
       if (res.succeeded()) {
-        System.out.printf("Service %s has responded%n", service.getUrl());
+        System.out.printf("Service %s (%s) has responded%n", service.getName(), service.getUrl());
         servicesRepository.setStatus(service.getName(), "OK");
       } else {
         System.out.printf("Service %s has failed%n", service.getUrl());

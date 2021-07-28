@@ -63,7 +63,7 @@ public class ServiceStatus {
 
     public boolean isUrlValid() {
         String[] schemes = {"http","https"};
-        UrlValidator urlValidator = new UrlValidator(schemes);
+        UrlValidator urlValidator = new UrlValidator(schemes, UrlValidator.ALLOW_LOCAL_URLS);
         return urlValidator.isValid(this.getUrl());
     }
 
