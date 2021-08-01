@@ -9,7 +9,6 @@ import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import se.kry.codetest.DBConnector;
 import se.kry.codetest.integrationTests.BaseMainVerticleTest;
 
 import java.util.Date;
@@ -20,16 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class GetAllServiceRouteTests extends BaseMainVerticleTest {
 
     @Override
-    protected void prepareDb(Vertx vertx, VertxTestContext testContext, DBConnector connector) {
+    protected void prepareDb(Vertx vertx, VertxTestContext testContext) {
         long date = new Date().getTime();
-        connector.query("insert into service (url, name, created_at) values ('http://example.com', 'example', " + date + "), ('https://foo.com', 'bar', " + date + ");")
-                .setHandler(result2 -> {
-                    if (result2.succeeded()) {
+        this.connector.query("insert into service (url, name, created_at) values ('http://example.com', 'example', " + date + "), ('https://foo.com', 'bar', " + date + ");")
+                .setHandler(result -> {
+                    if (result.succeeded()) {
                         testContext.completeNow();
                     } else {
-                        testContext.failNow(result2.cause());
+                        testContext.failNow(result.cause());
                     }
-                    connector.getClient().close();
                 });
     }
 

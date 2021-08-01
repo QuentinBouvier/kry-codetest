@@ -14,12 +14,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import se.kry.codetest.integrationTests.BaseMainVerticleTest;
 import se.kry.codetest.model.ServiceStatus;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PostServiceRoute extends BaseMainVerticleTest {
     @Test
@@ -27,7 +27,7 @@ public class PostServiceRoute extends BaseMainVerticleTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_post_should_return_201_and_add_a_service(Vertx vertx, VertxTestContext testContext) {
         // Arrange
-        String randomName = UUID.randomUUID().toString();
+        final String randomName = UUID.randomUUID().toString();
         ServiceStatus body = new ServiceStatus();
         body.setName(randomName);
         body.setUrl("https://example.com/");
@@ -42,14 +42,14 @@ public class PostServiceRoute extends BaseMainVerticleTest {
                         assertEquals(201, response.result().statusCode());
                     });
 
-                    client.get(APP_PORT, "localhost", "/service")
-                            .send(response2 -> {
-                                boolean hasNewService = response2.result().bodyAsJsonArray().stream()
-                                        .anyMatch(x -> ((JsonObject) x).getString("name").equals(randomName));
-
-                                // Assert (2)
+                    // Assert (2)
+                    this.connector.query("select * from service where name = '" + randomName + "';")
+                            .setHandler(result -> {
                                 testContext.verify(() -> {
-                                    assertTrue(hasNewService);
+                                    List<JsonObject> results = result.result().getRows();
+                                    assertEquals(1, (long) results.size());
+                                    assertEquals(randomName, results.get(0).getString("name"));
+
                                     testContext.completeNow();
                                 });
                             });
