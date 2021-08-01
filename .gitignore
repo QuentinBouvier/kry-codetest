@@ -60,3 +60,4 @@ build/
 
 # Sqlite base
 poller.db
+pollerTest.db

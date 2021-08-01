@@ -1,5 +1,8 @@
 package se.kry.codetest;
 
+import io.vertx.config.ConfigRetriever;
+import io.vertx.config.ConfigRetrieverOptions;
+import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
@@ -19,40 +22,70 @@ public class MainVerticle extends AbstractVerticle {
 
     private ServiceRepository serviceRepository;
     private BackgroundPoller poller;
-    private final Integer port;
+    private Integer port;
+    private final String dbPath;
 
     public MainVerticle() {
-        this.port = 8080;
+        this(8080, "poller.db");
     }
 
     public MainVerticle(int port) {
+        this(port, "poller.db");
+    }
+
+    public MainVerticle(int port, String dbPath) {
         this.port = port;
+        this.dbPath = dbPath;
     }
 
     @Override
     public void start(Future<Void> startFuture) {
-        DBConnector connector = new DBConnector(vertx);
-        WebClient webClient = WebClient.create(vertx);
+        ConfigRetriever retriever = ConfigRetriever.create(vertx, new ConfigRetrieverOptions()
+                .addStore(
+                        new ConfigStoreOptions().setType("env")
+                                .setConfig(new JsonObject().put("keys", new JsonArray().add("PORT")))
+                ));
 
-        serviceRepository = new ServiceRepository(connector);
-        poller = new BackgroundPoller(serviceRepository, webClient);
+        retriever.getConfig(confResult -> {
+            if (confResult.failed()) {
+                startFuture.fail(confResult.cause());
+            } else {
+                JsonObject config = confResult.result();
+                if (null != config.getInteger("PORT")) {
+                    this.port = config.getInteger("PORT");
+                }
 
-        Router router = Router.router(vertx);
-        router.route().handler(BodyHandler.create());
-        vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices());
-        setRoutes(router);
-
-        vertx
-                .createHttpServer()
-                .requestHandler(router)
-                .listen(this.port, result -> {
-                    if (result.succeeded()) {
-                        System.out.println("KRY code test service started");
-                        startFuture.complete();
+                DBConnector connector = new DBConnector(vertx, this.dbPath);
+                connector.start().setHandler(dbStart -> {
+                    if (dbStart.failed()) {
+                        startFuture.fail(dbStart.cause());
                     } else {
-                        startFuture.fail(result.cause());
+
+                        WebClient webClient = WebClient.create(vertx);
+
+                        serviceRepository = new ServiceRepository(connector);
+                        poller = new BackgroundPoller(serviceRepository, webClient);
+
+                        Router router = Router.router(vertx);
+                        router.route().handler(BodyHandler.create());
+                        vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices());
+                        setRoutes(router);
+
+                        vertx.createHttpServer()
+                                .requestHandler(router)
+                                .listen(this.port, result -> {
+                                    if (result.succeeded()) {
+                                        System.out.println("KRY code test service started");
+                                        startFuture.complete();
+                                    } else {
+                                        startFuture.fail(result.cause());
+                                    }
+                                });
                     }
                 });
+
+            }
+        });
     }
 
     private void setRoutes(Router router) {

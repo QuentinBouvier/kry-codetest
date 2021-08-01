@@ -10,16 +10,28 @@ import io.vertx.ext.sql.SQLClient;
 
 public class DBConnector {
 
-  private final String DB_PATH = "poller.db";
+  private static final String DB_PATH = "poller.db";
   private final SQLClient client;
 
-  public DBConnector(Vertx vertx){
+  public DBConnector(Vertx vertx, String path){
     JsonObject config = new JsonObject()
-        .put("url", "jdbc:sqlite:" + DB_PATH)
+        .put("url", "jdbc:sqlite:" + path)
         .put("driver_class", "org.sqlite.JDBC")
         .put("max_pool_size", 30);
 
     client = JDBCClient.createShared(vertx, config);
+  }
+
+  public Future<ResultSet> start() {
+    return query("CREATE TABLE IF NOT EXISTS service " +
+            "(url VARCHAR(128) NOT NULL, " +
+            "name VARCHAR(255) NOT NULL, " +
+            "created_at INTEGER(8) NOT NULL, " +
+            "status VARCHAR(8) DEFAULT \"UNKNOWN\");");
+  }
+
+  public DBConnector(Vertx vertx) {
+    this(vertx, DB_PATH);
   }
 
   public Future<ResultSet> query(String query) {
