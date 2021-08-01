@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import se.kry.codetest.integrationTests.BaseMainVerticleTest;
 import se.kry.codetest.model.ServiceStatus;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,37 @@ public class PostServiceRoute extends BaseMainVerticleTest {
                             });
 
                 });
+    }
+
+    @Test
+    @DisplayName("POST /service and get 400 when a the service's name already exists")
+    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
+    void route_service_as_post_should_return_400_if_the_service_name_already_exists_in_base(Vertx vertx, VertxTestContext testContext) {
+        // Arrange
+        String randomName = UUID.randomUUID().toString();
+        long date = new Date().getTime();
+        final ServiceStatus newService = new ServiceStatus();
+        newService.setUrl("https://bar.com");
+        newService.setName(randomName);
+        this.connector.query("insert into service (url, name, created_at) values ('https://foo.com', '" + randomName + "', " + date + ")")
+                .setHandler(queryResult -> {
+                    if (queryResult.failed()) {
+                        testContext.failNow(queryResult.cause());
+                    } else {
+                        // Act
+                        WebClient.create(vertx)
+                                .post(APP_PORT, "localhost", "/service")
+                                .sendJson(newService, response -> {
+                                    // Assert
+                                    testContext.verify(() -> {
+                                       assertEquals(400, response.result().statusCode());
+                                       assertEquals("Service with this name already exist", response.result().toString());
+                                       testContext.completeNow();
+                                    });
+                                });
+                    }
+                });
+
     }
 
     @ParameterizedTest(name = "POST /service and get 400 because the url \"{0}\" is invalid")
