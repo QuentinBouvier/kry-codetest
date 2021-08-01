@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +65,11 @@ public class MainVerticle extends AbstractVerticle {
                         vertx.close();
                     } else {
                         log.info("Connection to DB successful");
-                        WebClient webClient = WebClient.create(vertx);
+                        WebClient webClient = WebClient.create(vertx,
+                                new WebClientOptions()
+                                        .setFollowRedirects(true)
+                                        .setVerifyHost(false)
+                                        .setTrustAll(true));
 
                         serviceRepository = new ServiceStatusRepository(connector);
                         serviceStatusController = new ServiceStatusController(serviceRepository);

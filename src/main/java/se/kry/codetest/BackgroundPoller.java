@@ -3,7 +3,6 @@ package se.kry.codetest;
 import io.vertx.core.Future;
 import io.vertx.ext.web.client.WebClient;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
@@ -37,14 +36,11 @@ public class BackgroundPoller {
   private void pollSingleService(ServiceStatus service) {
     log.info("Polling service {}", service.getName());
 
-    String url = StringUtils.stripEnd(service.getUrl().replaceAll("^https?:\\/\\/", ""), "/");
-
     webClient
-            .get(443, url, "/")
-            .ssl(true)
+            .getAbs(service.getUrl())
             .send(res -> {
       if (res.succeeded()) {
-        log.info("Service {} ({}) has responded", service.getName(), service.getUrl());
+        log.debug("Service {} ({}) has responded", service.getName(), service.getUrl());
         servicesRepository.setStatus(service.getName(), "OK");
       } else {
         log.info("Service {} has failed", service.getUrl());
