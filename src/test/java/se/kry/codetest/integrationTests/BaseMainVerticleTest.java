@@ -3,6 +3,7 @@ package se.kry.codetest.integrationTests;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+@Slf4j
 @ExtendWith(VertxExtension.class)
 public abstract class BaseMainVerticleTest {
 
@@ -44,7 +46,7 @@ public abstract class BaseMainVerticleTest {
                 try {
                     Files.deleteIfExists(dbFile.toPath());
                 } catch (IOException ex) {
-                    System.err.printf("Something went wrong when deleting the test db file. You might want to delete %s manually%n", DB_NAME);
+                    log.error("Something went wrong when deleting the test db file. You might want to delete {} manually", DB_NAME);
                     ex.printStackTrace();
                 }
                 testContext.completeNow();

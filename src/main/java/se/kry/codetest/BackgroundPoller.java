@@ -2,6 +2,7 @@ package se.kry.codetest;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.client.WebClient;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
@@ -9,6 +10,7 @@ import se.kry.codetest.repository.ServiceStatusRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class BackgroundPoller {
   private final ServiceStatusRepository servicesRepository;
   private final WebClient webClient;
@@ -19,13 +21,13 @@ public class BackgroundPoller {
   }
 
   public void pollServices() {
-    System.out.println("Polling services");
+    log.info("Polling services...");
     Future<List<ServiceStatus>> servicesQuery = servicesRepository.findAll();
 
     servicesQuery.setHandler(servicesResult -> {
       if (servicesResult.succeeded()) {
         List<ServiceStatus> services = servicesResult.result();
-        System.out.println("Found services: " + services.stream().map(ServiceStatus::getName).collect(Collectors.joining(",")));
+        log.info("Found services: {}", services.stream().map(ServiceStatus::getName).collect(Collectors.joining(",")));
 
         services.forEach(this::pollSingleService);
       }
@@ -33,7 +35,7 @@ public class BackgroundPoller {
   }
 
   private void pollSingleService(ServiceStatus service) {
-    System.out.println("Polling service " + service.getName());
+    log.info("Polling service {}", service.getName());
 
     String url = StringUtils.stripEnd(service.getUrl().replaceAll("^https?:\\/\\/", ""), "/");
 
@@ -42,10 +44,10 @@ public class BackgroundPoller {
             .ssl(true)
             .send(res -> {
       if (res.succeeded()) {
-        System.out.printf("Service %s (%s) has responded%n", service.getName(), service.getUrl());
+        log.info("Service {} ({}) has responded", service.getName(), service.getUrl());
         servicesRepository.setStatus(service.getName(), "OK");
       } else {
-        System.out.printf("Service %s has failed%n", service.getUrl());
+        log.info("Service {} has failed", service.getUrl());
         servicesRepository.setStatus(service.getName(), "FAIL");
       }
     });

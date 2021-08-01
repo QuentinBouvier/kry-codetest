@@ -11,9 +11,11 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import lombok.extern.slf4j.Slf4j;
 import se.kry.codetest.controller.ServiceStatusController;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
+@Slf4j
 public class MainVerticle extends AbstractVerticle {
 
     private ServiceStatusRepository serviceRepository;
@@ -45,7 +47,9 @@ public class MainVerticle extends AbstractVerticle {
 
         retriever.getConfig(confResult -> {
             if (confResult.failed()) {
+                log.error("Unable to retrieve the config");
                 startFuture.fail(confResult.cause());
+                vertx.close();
             } else {
                 JsonObject config = confResult.result();
                 if (null != config.getInteger("PORT")) {
@@ -55,9 +59,11 @@ public class MainVerticle extends AbstractVerticle {
                 DBConnector connector = new DBConnector(vertx, this.dbPath);
                 connector.start().setHandler(dbStart -> {
                     if (dbStart.failed()) {
+                        log.error("Unable to connect to DB");
                         startFuture.fail(dbStart.cause());
+                        vertx.close();
                     } else {
-
+                        log.info("Connection to DB successful");
                         WebClient webClient = WebClient.create(vertx);
 
                         serviceRepository = new ServiceStatusRepository(connector);
@@ -73,10 +79,12 @@ public class MainVerticle extends AbstractVerticle {
                                 .requestHandler(router)
                                 .listen(this.port, result -> {
                                     if (result.succeeded()) {
-                                        System.out.println("KRY code test service started");
+                                        log.info("KRY code test service started on port {}", this.port);
                                         startFuture.complete();
                                     } else {
+                                        log.error("Unable to start the service poller");
                                         startFuture.fail(result.cause());
+                                        vertx.close();
                                     }
                                 });
                     }

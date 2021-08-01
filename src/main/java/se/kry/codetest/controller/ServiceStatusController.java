@@ -3,12 +3,14 @@ package se.kry.codetest.controller;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import lombok.extern.slf4j.Slf4j;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class ServiceStatusController {
 
     ServiceStatusRepository serviceRepository;
@@ -20,7 +22,8 @@ public class ServiceStatusController {
     public void servicePost(RoutingContext req) {
         JsonObject jsonBody = req.getBodyAsJson();
 
-        System.out.println("POST /service HTTP received with body: " + jsonBody.toString());
+        log.info("POST /service HTTP received");
+        log.debug("\twith body: {}", jsonBody.toString());
 
         ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
         if (newService.isComplete()) {
@@ -28,7 +31,7 @@ public class ServiceStatusController {
                 serviceRepository.createOne(newService)
                         .setHandler(repoResponse -> {
                             if (repoResponse.failed()) {
-                                System.out.println("Error: " + repoResponse.cause().getMessage());
+                                log.error("Error: {}", repoResponse.cause().getMessage());
                                 repoResponse.cause().printStackTrace();
                                 req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
                             } else req.response().setStatusCode(201).end();
@@ -42,9 +45,10 @@ public class ServiceStatusController {
     }
 
     public void serviceGet(RoutingContext req) {
+        log.info("POST /service HTTP received");
         serviceRepository.findAll().setHandler(repoResult -> {
             if (repoResult.failed()) {
-                System.out.println("Error: " + repoResult.cause().getMessage());
+                log.error("Error: {}", repoResult.cause().getMessage());
                 repoResult.cause().printStackTrace();
                 req.response().setStatusCode(500).end(repoResult.cause().getMessage());
             } else {
@@ -63,6 +67,8 @@ public class ServiceStatusController {
 
     public void serviceDelete(RoutingContext req) {
         String serviceName = req.pathParam("name");
+        log.info("POST /service HTTP received");
+        log.debug("\tfor name {}", serviceName);
 
         if (null == serviceName) {
             req.response().setStatusCode(400).end("name path param is mandatory");
@@ -71,7 +77,7 @@ public class ServiceStatusController {
                 if (repoResult.succeeded()) {
                     req.response().setStatusCode(204).end();
                 } else {
-                    System.out.println("Error: " + repoResult.cause().getMessage());
+                    log.error("Error: {}", repoResult.cause().getMessage());
                     repoResult.cause().printStackTrace();
                     req.response().setStatusCode(500).end(repoResult.cause().getMessage());
                 }
