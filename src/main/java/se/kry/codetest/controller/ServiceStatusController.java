@@ -45,7 +45,7 @@ public class ServiceStatusController {
     }
 
     public void serviceGet(RoutingContext req) {
-        log.info("POST /service HTTP received");
+        log.info("GET /service HTTP received");
         serviceRepository.findAll().setHandler(repoResult -> {
             if (repoResult.failed()) {
                 log.error("Error: {}", repoResult.cause().getMessage());
@@ -67,7 +67,7 @@ public class ServiceStatusController {
 
     public void serviceDelete(RoutingContext req) {
         String serviceName = req.pathParam("name");
-        log.info("POST /service HTTP received");
+        log.info("DELETE /service HTTP received");
         log.debug("\tfor name {}", serviceName);
 
         if (null == serviceName) {
