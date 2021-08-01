@@ -37,10 +37,10 @@ public class PostServiceRoute extends BaseMainVerticleTest {
 
         // Act
         client.post(APP_PORT, "localhost", "/service")
-                .sendJson(bodyAsJson, response -> {
+                .sendJson(bodyAsJson, testContext.succeeding(response -> {
                     // Assert (1)
                     testContext.verify(() -> {
-                        assertEquals(201, response.result().statusCode());
+                        assertEquals(201, response.statusCode());
                     });
 
                     // Assert (2)
@@ -55,7 +55,7 @@ public class PostServiceRoute extends BaseMainVerticleTest {
                                 });
                             });
 
-                });
+                }));
     }
 
     @Test
@@ -76,14 +76,14 @@ public class PostServiceRoute extends BaseMainVerticleTest {
                         // Act
                         WebClient.create(vertx)
                                 .post(APP_PORT, "localhost", "/service")
-                                .sendJson(newService, response -> {
+                                .sendJson(newService, testContext.succeeding(response -> {
                                     // Assert
                                     testContext.verify(() -> {
-                                       assertEquals(400, response.result().statusCode());
-                                       assertEquals("Service with this name already exist", response.result().toString());
+                                       assertEquals(400, response.statusCode());
+                                       assertEquals("Service with this name already exist", response.toString());
                                        testContext.completeNow();
                                     });
-                                });
+                                }));
                     }
                 });
 
@@ -103,14 +103,14 @@ public class PostServiceRoute extends BaseMainVerticleTest {
 
         // Act
         client.post(APP_PORT, "localhost", "/service")
-                .sendJson(bodyAsJson, response -> {
+                .sendJson(bodyAsJson, testContext.succeeding(response -> {
                     // Assert (1)
                     testContext.verify(() -> {
-                        assertEquals(400, response.result().statusCode());
-                        assertEquals("The provided url is invalid", response.result().bodyAsString());
+                        assertEquals(400, response.statusCode());
+                        assertEquals("The provided url is invalid", response.bodyAsString());
                         testContext.completeNow();
                     });
-                });
+                }));
     }
 
     @ParameterizedTest(name = "POST /service and get 400 when {1} is missing")
@@ -123,15 +123,14 @@ public class PostServiceRoute extends BaseMainVerticleTest {
         // Act
         WebClient.create(vertx)
                 .post(APP_PORT, "localhost", "/service")
-                .sendJson(bodyAsJson, response -> {
+                .sendJson(bodyAsJson, testContext.succeeding(response -> {
                     // Assert
                     testContext.verify(() -> {
-                        assertEquals(400, response.result().statusCode());
-                        assertEquals("url and name are mandatory", response.result().bodyAsString());
+                        assertEquals(400, response.statusCode());
+                        assertEquals("url and name are mandatory", response.bodyAsString());
+                        testContext.completeNow();
                     });
-
-                    testContext.completeNow();
-                });
+                }));
     }
 
     static Stream<Arguments> incompleteRequestBody() {

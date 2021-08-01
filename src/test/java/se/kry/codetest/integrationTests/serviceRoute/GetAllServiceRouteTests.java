@@ -21,14 +21,10 @@ public class GetAllServiceRouteTests extends BaseMainVerticleTest {
     @Override
     protected void prepareDb(Vertx vertx, VertxTestContext testContext) {
         long date = new Date().getTime();
-        this.connector.query("insert into service (url, name, created_at) values ('http://example.com', 'example', " + date + "), ('https://foo.com', 'bar', " + date + ");")
-                .setHandler(result -> {
-                    if (result.succeeded()) {
-                        testContext.completeNow();
-                    } else {
-                        testContext.failNow(result.cause());
-                    }
-                });
+        this.connector.query("insert into service (url, name, created_at) " +
+                        "values ('https://example.com', 'example', " + date + "), " +
+                        "('https://foo.com', 'bar', " + date + ");")
+                .setHandler(testContext.succeeding(x -> testContext.completeNow()));
     }
 
     @Test
@@ -38,16 +34,14 @@ public class GetAllServiceRouteTests extends BaseMainVerticleTest {
         WebClient client = WebClient.create(vertx);
         client
                 .get(APP_PORT, "localhost", "/service")
-                .send(response -> {
-                    HttpResponse<Buffer> result = response.result();
-
+                .send(testContext.succeeding(response -> {
                     // Assert
                     testContext.verify(() -> {
-                        JsonArray body = result.bodyAsJsonArray(); // Must not throw
-                        assertEquals(200, response.result().statusCode());
+                        JsonArray body = response.bodyAsJsonArray(); // Must not throw
+                        assertEquals(200, response.statusCode());
                         assertEquals(2, body.stream().count());
                         testContext.completeNow();
                     });
-                });
+                }));
     }
 }

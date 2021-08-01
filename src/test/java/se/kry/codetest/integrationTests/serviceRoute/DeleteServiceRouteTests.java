@@ -22,14 +22,9 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
     @Override
     protected void prepareDb(Vertx vertx, VertxTestContext testContext) {
         long date = new Date().getTime();
-        this.connector.query("insert into service (url, name, created_at) values ('http://example.com', '" + DELETE_SERVICE_NAME + "', " + date + ");")
-                .setHandler(result -> {
-                    if (result.succeeded()) {
-                        testContext.completeNow();
-                    } else {
-                        testContext.failNow(result.cause());
-                    }
-                });
+        this.connector.query("insert into service (url, name, created_at) " +
+                        "values ('https://example.com', '" + DELETE_SERVICE_NAME + "', " + date + ");")
+                .setHandler(testContext.succeeding(result -> testContext.completeNow()));
     }
 
     @Test
@@ -39,11 +34,11 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
         // Act
         WebClient.create(vertx)
                 .delete(APP_PORT, "localhost", "/service/" + DELETE_SERVICE_NAME)
-                .send(response -> {
+                .send(testContext.succeeding(response -> {
                     // Assert
                     testContext.verify(() -> {
                         // Asserts http response is NO CONTENT
-                        assertEquals(204, response.result().statusCode());
+                        assertEquals(204, response.statusCode());
 
                         // Asserts the entry was removed from base
                         this.connector.query("select * from service where name = '" + DELETE_SERVICE_NAME + "'")
@@ -54,7 +49,7 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
                                     testContext.completeNow();
                                 });
                     });
-                });
+                }));
     }
 
     @Test
@@ -64,15 +59,15 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
         // Act
         WebClient.create(vertx)
                 .delete(APP_PORT, "localhost", "/service/" + DIFFERENT_NAME)
-                .send(response -> {
+                .send(testContext.succeeding(response -> {
                     // Assert
                     testContext.verify(() -> {
                         // Asserts http response is BAD REQUEST
-                        assertEquals(400, response.result().statusCode());
-                        assertEquals("No service was found with this name", response.result().toString());
+                        assertEquals(400, response.statusCode());
+                        assertEquals("No service was found with this name", response.toString());
                         testContext.completeNow();
                     });
-                });
+                }));
     }
 
     @Test
@@ -82,13 +77,13 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
         // Act
         WebClient.create(vertx)
                 .delete(APP_PORT, "localhost", "/service/")
-                .send(response -> {
+                .send(testContext.succeeding(response -> {
                     // Assert
                     testContext.verify(() -> {
                         // Asserts http response is NOT FOUND
-                        assertEquals(404, response.result().statusCode());
+                        assertEquals(404, response.statusCode());
                         testContext.completeNow();
                     });
-                });
+                }));
     }
 }

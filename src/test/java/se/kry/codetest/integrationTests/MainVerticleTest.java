@@ -18,9 +18,9 @@ public class MainVerticleTest extends BaseMainVerticleTest {
     void start_http_server(Vertx vertx, VertxTestContext testContext) {
         WebClient.create(vertx)
                 .get(APP_PORT, "::1", "/example")
-                .send(response -> testContext.verify(() -> {
-                    assertEquals(404, response.result().statusCode());
+                .send(testContext.succeeding(response -> testContext.verify(() -> {
+                    assertEquals(404, response.statusCode());
                     testContext.completeNow();
-                }));
+                })));
     }
 }
