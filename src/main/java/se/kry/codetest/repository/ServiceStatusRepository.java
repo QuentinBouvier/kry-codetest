@@ -13,10 +13,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ServiceRepository {
+public class ServiceStatusRepository {
     final private DBConnector dbConnector;
 
-    public ServiceRepository(DBConnector connector) {
+    public ServiceStatusRepository(DBConnector connector) {
         this.dbConnector = connector;
     }
 
@@ -70,7 +70,7 @@ public class ServiceRepository {
     }
 
     /**
-     * Insert a new PollService in the base
+     * Insert a new ServiceStatus in the base
      *
      * @param service The service to insert
      * @return A future holding the success of the operation

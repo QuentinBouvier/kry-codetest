@@ -4,16 +4,16 @@ import io.vertx.core.Future;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.StringUtils;
 import se.kry.codetest.model.ServiceStatus;
-import se.kry.codetest.repository.ServiceRepository;
+import se.kry.codetest.repository.ServiceStatusRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class BackgroundPoller {
-  private final ServiceRepository servicesRepository;
+  private final ServiceStatusRepository servicesRepository;
   private final WebClient webClient;
 
-  public BackgroundPoller(ServiceRepository repository, WebClient webClient) {
+  public BackgroundPoller(ServiceStatusRepository repository, WebClient webClient) {
     this.servicesRepository = repository;
     this.webClient = webClient;
   }
