@@ -36,7 +36,7 @@ dependencies {
   compile "io.vertx:vertx-config:$vertxVersion"
   implementation 'org.apache.commons:commons-lang3:3.12.0'
   implementation "commons-validator:commons-validator:1.7"
-  compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.7.2'
+  compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.34.0'
   compile "io.vertx:vertx-jdbc-client:$vertxVersion"
 
   testImplementation "io.vertx:vertx-junit5:$vertxVersion"

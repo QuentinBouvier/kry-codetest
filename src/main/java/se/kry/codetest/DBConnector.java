@@ -34,6 +34,10 @@ public class DBConnector {
     this(vertx, DB_PATH);
   }
 
+  public SQLClient getClient() {
+    return client;
+  }
+
   public Future<ResultSet> query(String query) {
     return query(query, new JsonArray());
   }
@@ -49,13 +53,22 @@ public class DBConnector {
 
     Future<ResultSet> queryResultFuture = Future.future();
 
-    client.queryWithParams(query, params, result -> {
-      if(result.failed()){
-        queryResultFuture.fail(result.cause());
+    String finalQuery = query;
+    client.getConnection(connection -> {
+      if (connection.failed()) {
+        queryResultFuture.fail(connection.cause());
       } else {
-        queryResultFuture.complete(result.result());
+        connection.result().queryWithParams(finalQuery, params, result -> {
+          if(result.failed()){
+            queryResultFuture.fail(result.cause());
+          } else {
+            queryResultFuture.complete(result.result());
+          }
+          connection.result().close();
+        });
       }
     });
+
     return queryResultFuture;
   }
 }
