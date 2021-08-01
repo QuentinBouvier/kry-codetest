@@ -13,13 +13,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MainVerticleTest extends BaseMainVerticleTest {
     @Test
-    @DisplayName("Start a web server on localhost (8083), query url /example and get a 404 response")
+    @DisplayName("query url /example gives 404 http response")
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void start_http_server(Vertx vertx, VertxTestContext testContext) {
         WebClient.create(vertx)
                 .get(APP_PORT, "::1", "/example")
                 .send(testContext.succeeding(response -> testContext.verify(() -> {
                     assertEquals(404, response.statusCode());
+                    testContext.completeNow();
+                })));
+    }
+
+    @Test
+    @DisplayName("Query url / gives 200 http response")
+    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
+    void root_root_resturn_200_http_response(Vertx vertx, VertxTestContext testContext) {
+        WebClient.create(vertx)
+                .get(APP_PORT, "localhost", "/")
+                .send(testContext.succeeding(response -> testContext.verify(() -> {
+                    assertEquals(200, response.statusCode());
                     testContext.completeNow();
                 })));
     }

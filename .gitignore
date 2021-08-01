@@ -62,3 +62,6 @@ build/
 # Sqlite base
 poller.db
 pollerTest.db
+
+#frontend
+**/frontend/node_modules/
