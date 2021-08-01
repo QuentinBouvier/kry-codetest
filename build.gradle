@@ -5,12 +5,16 @@ plugins {
 }
 ext {
   vertxVersion = '3.6.3'
-  junitJupiterEngineVersion = '5.6.0'
+  junitJupiterEngineVersion = '5.7.2'
 }
 
 repositories {
   mavenLocal()
   jcenter()
+  maven {
+    url 'https://repo.maven.apache.org/maven2'
+    name 'Maven Central'
+  }
 }
 
 group = 'se.kry'
@@ -30,12 +34,13 @@ dependencies {
   implementation "io.vertx:vertx-web:$vertxVersion"
   implementation "io.vertx:vertx-web-client:$vertxVersion"
   compile "io.vertx:vertx-config:$vertxVersion"
-  implementation "org.apache.commons:commons-lang3:3.6"
+  implementation 'org.apache.commons:commons-lang3:3.12.0'
   implementation "commons-validator:commons-validator:1.7"
   compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.7.2'
   compile "io.vertx:vertx-jdbc-client:$vertxVersion"
 
   testImplementation "io.vertx:vertx-junit5:$vertxVersion"
+  testImplementation "org.junit.jupiter:junit-jupiter-params:$junitJupiterEngineVersion"
   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitJupiterEngineVersion")
 }
 
