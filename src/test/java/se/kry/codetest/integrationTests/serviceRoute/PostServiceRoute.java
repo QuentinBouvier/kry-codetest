@@ -80,7 +80,7 @@ public class PostServiceRoute extends BaseMainVerticleTest {
                                     // Assert
                                     testContext.verify(() -> {
                                        assertEquals(400, response.statusCode());
-                                       assertEquals("Service with this name already exist", response.toString());
+                                       assertEquals("Service with this name already exist", response.body().toString());
                                        testContext.completeNow();
                                     });
                                 }));

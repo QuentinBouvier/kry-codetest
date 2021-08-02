@@ -27,7 +27,7 @@ public class MainVerticleTest extends BaseMainVerticleTest {
     @Test
     @DisplayName("Query url / gives 200 http response")
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
-    void root_root_resturn_200_http_response(Vertx vertx, VertxTestContext testContext) {
+    void root_route_returns_200_http_response(Vertx vertx, VertxTestContext testContext) {
         WebClient.create(vertx)
                 .get(APP_PORT, "localhost", "/")
                 .send(testContext.succeeding(response -> testContext.verify(() -> {

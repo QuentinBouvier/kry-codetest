@@ -64,7 +64,7 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
                     testContext.verify(() -> {
                         // Asserts http response is BAD REQUEST
                         assertEquals(400, response.statusCode());
-                        assertEquals("No service was found with this name", response.toString());
+                        assertEquals("Service with this name does not exist", response.body().toString());
                         testContext.completeNow();
                     });
                 }));

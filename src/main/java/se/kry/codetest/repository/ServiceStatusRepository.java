@@ -119,7 +119,7 @@ public class ServiceStatusRepository {
         Future<Void> futureResult = Future.future();
 
         findQuery.setHandler(findResult -> {
-            if (findQuery.isComplete()) {
+            if (findQuery.succeeded()) {
                 if (null == findQuery.result()) {
                     futureResult.fail(new InvalidParameterException("Service with this name does not exist"));
                 } else {
@@ -151,6 +151,10 @@ public class ServiceStatusRepository {
      * @return A future holding the success of the operation
      */
     public Future<Void> deleteByName(String name) {
+        Future<ResultSet> checkQuery = dbConnector.query(
+                "SELECT * FROM service WHERE name = ?",
+                new JsonArray(Collections.singletonList(name))
+        );
         Future<ResultSet> query = dbConnector.query(
                 "DELETE FROM service WHERE name = ?",
                 new JsonArray(Collections.singletonList(name))
@@ -158,9 +162,19 @@ public class ServiceStatusRepository {
 
         Future<Void> futureResult = Future.future();
 
-        query.setHandler(deleteResult -> {
-            if (deleteResult.succeeded()) futureResult.complete();
-            else futureResult.fail(deleteResult.cause());
+        checkQuery.setHandler(selectResult -> {
+            if(selectResult.failed()) {
+                futureResult.fail(selectResult.cause());
+            } else {
+                if (selectResult.result().getNumRows() > 0) {
+                    query.setHandler(deleteResult -> {
+                        if (deleteResult.succeeded()) futureResult.complete();
+                        else futureResult.fail(deleteResult.cause());
+                    });
+                } else {
+                    futureResult.fail(new InvalidParameterException("Service with this name does not exist"));
+                }
+            }
         });
 
         return futureResult;

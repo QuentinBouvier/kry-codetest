@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
+import java.security.InvalidParameterException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,9 +32,13 @@ public class ServiceStatusController {
                 serviceRepository.createOne(newService)
                         .setHandler(repoResponse -> {
                             if (repoResponse.failed()) {
-                                log.error("Error: {}", repoResponse.cause().getMessage());
-                                repoResponse.cause().printStackTrace();
-                                req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
+                                if (repoResponse.cause() instanceof InvalidParameterException) {
+                                    req.response().setStatusCode(400).end(repoResponse.cause().getMessage());
+                                } else {
+                                    log.error("Error: {}", repoResponse.cause().getMessage());
+                                    repoResponse.cause().printStackTrace();
+                                    req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
+                                }
                             } else req.response().setStatusCode(201).end();
                         });
             } else {
@@ -77,9 +82,13 @@ public class ServiceStatusController {
                 if (repoResult.succeeded()) {
                     req.response().setStatusCode(204).end();
                 } else {
-                    log.error("Error: {}", repoResult.cause().getMessage());
-                    repoResult.cause().printStackTrace();
-                    req.response().setStatusCode(500).end(repoResult.cause().getMessage());
+                    if (repoResult.cause() instanceof InvalidParameterException) {
+                        req.response().setStatusCode(400).end(repoResult.cause().getMessage());
+                    } else {
+                        log.error("Error: {}", repoResult.cause().getMessage());
+                        repoResult.cause().printStackTrace();
+                        req.response().setStatusCode(500).end(repoResult.cause().getMessage());
+                    }
                 }
             });
         }

@@ -19,7 +19,7 @@ import java.nio.file.Files;
 public abstract class BaseMainVerticleTest {
 
     static final protected String DB_NAME = "pollerTest.db";
-    static final protected int APP_PORT = 8083;
+    static final protected int APP_PORT = 8084;
     protected DBConnector connector = null;
 
     @BeforeEach
