@@ -5,16 +5,21 @@ import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.extern.slf4j.Slf4j;
 import se.kry.codetest.controller.ServiceStatusController;
 import se.kry.codetest.repository.ServiceStatusRepository;
+
+import java.util.Arrays;
+import java.util.HashSet;
 
 @Slf4j
 public class MainVerticle extends AbstractVerticle {
@@ -101,6 +106,10 @@ public class MainVerticle extends AbstractVerticle {
 
     private void setRoutes(Router router) {
         router.route("/*").handler(StaticHandler.create());
+        router.route("/service").handler(
+                CorsHandler.create("^(https?:\\/\\/)?localhost(:[0-9]{1,5})?")
+                        .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.DELETE, HttpMethod.OPTIONS)))
+        );
         router.get("/service").handler(this.serviceStatusController::serviceGet);
         router.post("/service").handler(this.serviceStatusController::servicePost);
         router.delete("/service/:name").handler(this.serviceStatusController::serviceDelete);
