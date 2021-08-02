@@ -7,13 +7,13 @@
     <div class="field">
       <div class="label">Name</div>
       <div class="control">
-        <input type="text" :class="{ 'is-danger': hasError }" @input="resetError" class="input" v-model="nameValue" @keyup.enter="addService">
+        <input type="text" :class="{ 'is-danger': hasError }" @input="resetError" class="input" v-model="nameValue" @keyup.enter="addService" placeholder="Service's identifier">
       </div>
     </div>
     <div class="field">
       <div class="label">Url</div>
       <div class="control">
-        <input type="text" :class="{ 'is-danger': hasError }" @input="resetError" class="input" v-model="urlValue" @keyup.enter="addService">
+        <input type="text" :class="{ 'is-danger': hasError }" @input="resetError" class="input" v-model="urlValue" @keyup.enter="addService" placeholder="https://example.com">
       </div>
     </div>
     <div class="field" :class="{ 'error-shift': !hasError }">

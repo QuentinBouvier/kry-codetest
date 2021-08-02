@@ -16,8 +16,8 @@
                 <p class="subtitle is-5"><a :href=service.url target="_blank" rel="noreferrer">{{ service.url }}</a></p>
               </div>
               <div class="column is-flex">
-                <button class="button" @click="deleteService(service.name)">supprimer</button>
-                <button class="ml-1 button is-disabled" disabled>éditer</button>
+                <button class="button" @click="deleteService(service.name)">Delete</button>
+                <button class="ml-1 button is-disabled" disabled>Update</button>
               </div>
             </div>
           </div>
