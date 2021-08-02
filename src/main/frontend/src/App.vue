@@ -4,11 +4,11 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-import Poller from './components/Poller.vue';
+import PollerComponent from './components/PollerComponent.vue';
 
 @Options({
   components: {
-    Poller
+    Poller: PollerComponent
   }
 })
 export default class App extends Vue {}

@@ -3,15 +3,17 @@
     <div class="column is-half is-offset-one-quarter">
       <div class="is-flex is-flex-direction-column is-align-items-center">
         <h1 class="title">Kry Status Poller</h1>
+        <button @click="showAddForm = true" v-show="!showAddForm" class="button mb-4">Add Service</button>
+        <AddService v-show="showAddForm" />
         <div class="services-container">
           <div v-for="service in services" :key="service.name" class="box">
             <div class="columns">
               <div class="column is-flex is-align-items-center">
-                <span :class="[tagClass[service.status]]" class="tag is-large">{{service.status}}</span>
+                <span :class="[tagClass[service.status]]" class="tag is-large">{{ service.status }}</span>
               </div>
               <div class="column">
-                <p class="title is-3">{{service.name}}</p>
-                <p class="subtitle is-5">{{ service.url }}</p>
+                <p class="title is-3">{{ service.name }}</p>
+                <p class="subtitle is-5"><a :href=service.url target="_blank" rel="noreferrer">{{ service.url }}</a></p>
               </div>
               <div class="column is-flex">
                 <button class="button">supprimer</button>
@@ -28,6 +30,7 @@
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import axios from 'axios';
+import AddServiceComponent from './AddServiceComponent.vue';
 
 Vue.registerHooks(['mounted']);
 
@@ -46,20 +49,30 @@ interface ServiceStatus {
   status: string;
 }
 
-@Options({})
-export default class Poller extends Vue {
+@Options({
+  components: { AddService: AddServiceComponent }
+})
+export default class PollerComponent extends Vue {
   services: ServiceStatus[] = [];
+  showAddForm = false;
   tagClass = {
     OK: 'is-success',
     FAIL: 'is-danger',
     UNKNOWN: 'is-info'
   }
 
-  async mounted (): Promise<void> {
+  async mounted(): Promise<void> {
     this.services = await this.getServices();
+    this.emitter.on('service-added', async () => {
+      this.showAddForm = false;
+      this.services = await this.getServices();
+    });
+    this.emitter.on('add-service-close', () => {
+      this.showAddForm = false;
+    });
   }
 
-  async getServices (): Promise<ServiceStatus[]> {
+  async getServices(): Promise<ServiceStatus[]> {
     const response = await axios({
       method: 'get',
       url: 'http://localhost:8080/service'
@@ -76,7 +89,6 @@ export default class Poller extends Vue {
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
 .services-container {
   width: 100%;
