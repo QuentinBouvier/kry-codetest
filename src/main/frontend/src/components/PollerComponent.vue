@@ -75,7 +75,7 @@ export default class PollerComponent extends Vue {
   async getServices(): Promise<ServiceStatus[]> {
     const response = await axios({
       method: 'get',
-      url: 'http://localhost:8080/service'
+      url: '/service'
     });
     return response.data.map((x: ServiceStatusDto) => {
       return {
@@ -89,7 +89,7 @@ export default class PollerComponent extends Vue {
 
   async deleteService(name: string): Promise<void> {
     const response = await axios({
-      url: `http://localhost:8080/service/${name}`,
+      url: `/service/${name}`,
       method: 'delete',
       responseType: 'text'
     });

@@ -43,7 +43,7 @@ export default class AddServiceComponent extends Vue {
   async addService(): Promise<void> {
     try {
       const response = await axios({
-        url: 'http://localhost:8080/service',
+        url: '/service',
         method: 'post',
         data: {
           name: this.nameValue,
