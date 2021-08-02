@@ -3,13 +3,13 @@ package se.kry.codetest.repository;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
+import org.joda.time.DateTime;
 import se.kry.codetest.DBConnector;
 import se.kry.codetest.model.ServiceStatus;
 
 import java.security.InvalidParameterException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -87,7 +87,7 @@ public class ServiceStatusRepository {
                     futureResult.fail(new InvalidParameterException("Service with this name already exist"));
                 } else {
                     Future<ResultSet> insertQuery = dbConnector.query("INSERT INTO service (url, name, created_at) values(?, ?, ?)",
-                            new JsonArray(Arrays.asList(service.getUrl(), service.getName(), new Date().getTime())));
+                            new JsonArray(Arrays.asList(service.getUrl(), service.getName(), new DateTime().getMillis())));
 
                     insertQuery.setHandler(insertResult -> {
                         if (insertQuery.succeeded()) {

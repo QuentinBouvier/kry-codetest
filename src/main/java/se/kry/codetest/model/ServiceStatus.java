@@ -4,6 +4,7 @@ import io.vertx.core.json.JsonObject;
 import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.validator.routines.UrlValidator;
+import org.joda.time.DateTime;
 
 import java.util.Date;
 
@@ -11,7 +12,7 @@ import java.util.Date;
 public class ServiceStatus {
     private String url;
     private String name;
-    private Date createdAt;
+    private DateTime createdAt;
     private String status;
 
     /**
@@ -27,7 +28,7 @@ public class ServiceStatus {
         return new JsonObject()
                 .put("url", url)
                 .put("name", name)
-                .put("created_at", null != createdAt ? createdAt.getTime() : null)
+                .put("created_at", null != createdAt ? createdAt.getMillis() : null)
                 .put("status", status);
     }
 
@@ -48,7 +49,7 @@ public class ServiceStatus {
         output.setName(source.getString("name"));
         output.setUrl(source.getString("url"));
         if (null != source.getInteger("created_at")) {
-            output.setCreatedAt(new Date(source.getInteger("created_at")));
+            output.setCreatedAt(new DateTime(source.getLong("created_at")));
         }
         output.setStatus(source.getString("status"));
 

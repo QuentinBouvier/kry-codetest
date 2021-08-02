@@ -43,6 +43,7 @@ dependencies {
   compile "io.vertx:vertx-jdbc-client:$vertxVersion"
   compileOnly "org.projectlombok:lombok:$lombokVersion"
   annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+  compile 'joda-time:joda-time:2.10.10'
 
   testCompileOnly "org.projectlombok:lombok:$lombokVersion"
   testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
