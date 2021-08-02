@@ -106,7 +106,7 @@ public class MainVerticle extends AbstractVerticle {
 
     private void setRoutes(Router router) {
         router.route("/*").handler(StaticHandler.create());
-        router.route("/service").handler(
+        router.routeWithRegex("\\/service(\\/.*)?").handler(
                 CorsHandler.create("^(https?:\\/\\/)?localhost(:[0-9]{1,5})?")
                         .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.DELETE, HttpMethod.OPTIONS)))
         );
@@ -115,6 +115,3 @@ public class MainVerticle extends AbstractVerticle {
         router.delete("/service/:name").handler(this.serviceStatusController::serviceDelete);
     }
 }
-
-
-

@@ -4,7 +4,7 @@
       <div class="is-flex is-flex-direction-column is-align-items-center">
         <h1 class="title">Kry Status Poller</h1>
         <button @click="showAddForm = true" v-show="!showAddForm" class="button mb-4">Add Service</button>
-        <AddService v-show="showAddForm" />
+        <AddService v-show="showAddForm"/>
         <div class="services-container">
           <div v-for="service in services" :key="service.name" class="box">
             <div class="columns">
@@ -16,8 +16,8 @@
                 <p class="subtitle is-5"><a :href=service.url target="_blank" rel="noreferrer">{{ service.url }}</a></p>
               </div>
               <div class="column is-flex">
-                <button class="button">supprimer</button>
-                <button class="ml-1 button">éditer</button>
+                <button class="button" @click="deleteService(service.name)">supprimer</button>
+                <button class="ml-1 button is-disabled" disabled>éditer</button>
               </div>
             </div>
           </div>
@@ -85,6 +85,18 @@ export default class PollerComponent extends Vue {
         status: x.status
       };
     });
+  }
+
+  async deleteService(name: string): Promise<void> {
+    const response = await axios({
+      url: `http://localhost:8080/service/${name}`,
+      method: 'delete',
+      responseType: 'text'
+    });
+
+    if (response.status === 204) {
+      this.services = await this.getServices();
+    }
   }
 }
 </script>
