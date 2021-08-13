@@ -39,9 +39,9 @@ public class ServiceStatusController {
                                 req.response().setStatusCode(500).end(cause.getMessage());
                             }
                         })
-                        .onSuccess(repoResult -> {
-                            req.response().setStatusCode(201).end();
-                        });
+                        .onSuccess(repoResult ->
+                                req.response().setStatusCode(201).end()
+                        );
             } else {
                 req.response().setStatusCode(400).end("The provided url is invalid");
             }
@@ -89,9 +89,9 @@ public class ServiceStatusController {
                             req.response().setStatusCode(500).end(cause.getMessage());
                         }
                     })
-                    .onSuccess(repoResult -> {
-                        req.response().setStatusCode(204).end();
-                    });
+                    .onSuccess(repoResult ->
+                            req.response().setStatusCode(204).end()
+                    );
         }
     }
 }
