@@ -1,14 +1,19 @@
 package se.kry.codetest.integrationTests.serviceRoute;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
+import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.sqlclient.Row;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import se.kry.codetest.integrationTests.BaseMainVerticleTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import se.kry.codetest.integrationTests.BaseMainVerticleIntegrationTest;
 
 import java.util.Date;
 import java.util.List;
@@ -18,7 +23,8 @@ import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DeleteServiceRouteTests extends BaseMainVerticleTest {
+@ExtendWith(VertxExtension.class)
+public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
     private static final String DELETE_SERVICE_NAME = "foo";
     private static final String DIFFERENT_NAME = "bar";
 
@@ -35,27 +41,26 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_delete_should_remove_entry_when_name_is_found_and_return_204(Vertx vertx, VertxTestContext testContext) {
         // Act
-        WebClient.create(vertx)
-                .delete(APP_PORT, "localhost", "/service/" + DELETE_SERVICE_NAME)
-                .send(testContext.succeeding(response -> {
-                    // Assert
-                    testContext.verify(() -> {
-                        // Asserts http response is NO CONTENT
-                        assertEquals(204, response.statusCode());
+        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+                .delete(APP_PORT, BASE_HOST, "/service/" + DELETE_SERVICE_NAME)
+                .send();
 
-                        // Asserts the entry was removed from base
-                        this.connector.query("select * from service where name = '" + DELETE_SERVICE_NAME + "'")
-                                .onSuccess(rows -> {
-                                    List<JsonObject> results = StreamSupport
-                                            .stream(rows.spliterator(), false)
-                                            .map(Row::toJson)
-                                            .collect(Collectors.toList());
+        // Assert
+        responseFuture
+                .onSuccess(response -> testContext.verify(() ->
+                        assertEquals(204, response.statusCode()))
+                )
+                // Verify the DB
+                .compose(x -> this.connector.query("select * from service where name = '" + DELETE_SERVICE_NAME + "'"))
+                .onSuccess(rows -> testContext.verify(() -> {
+                    List<JsonObject> results = StreamSupport
+                            .stream(rows.spliterator(), false)
+                            .map(Row::toJson)
+                            .collect(Collectors.toList());
 
-                                    assertEquals(0, (long) results.size());
+                    assertEquals(0, (long) results.size());
 
-                                    testContext.completeNow();
-                                });
-                    });
+                    testContext.completeNow();
                 }));
     }
 
@@ -64,16 +69,19 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_delete_should_return_404_when_name_is_not_found(Vertx vertx, VertxTestContext testContext) {
         // Act
-        WebClient.create(vertx)
-                .delete(APP_PORT, "localhost", "/service/" + DIFFERENT_NAME)
-                .send(testContext.succeeding(response -> {
-                    // Assert
-                    testContext.verify(() -> {
-                        // Asserts http response is BAD REQUEST
-                        assertEquals(404, response.statusCode());
-                        assertEquals("Service with this name does not exist", response.body().toString());
-                        testContext.completeNow();
-                    });
-                }));
+        Future<HttpResponse<Buffer>> httpResponse = WebClient.create(vertx)
+                .delete(APP_PORT, BASE_HOST, "/service/" + DIFFERENT_NAME)
+                .send();
+
+        // Assert
+        httpResponse.onSuccess(response -> {
+            // Assert
+            testContext.verify(() -> {
+                // Asserts http response is BAD REQUEST
+                assertEquals(404, response.statusCode());
+                assertEquals("Service with this name does not exist", response.body().toString());
+                testContext.completeNow();
+            });
+        });
     }
 }

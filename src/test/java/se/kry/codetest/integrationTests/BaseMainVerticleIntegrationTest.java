@@ -16,28 +16,30 @@ import java.nio.file.Files;
 
 @Slf4j
 @ExtendWith(VertxExtension.class)
-public abstract class BaseMainVerticleTest {
+public abstract class BaseMainVerticleIntegrationTest {
 
     static final protected String DB_NAME = "pollerTest.db";
     static final protected int APP_PORT = 8084;
+    static final protected String BASE_HOST = "localhost";
+
     protected DBConnector connector = null;
 
     @BeforeEach
     void deploy_verticle(Vertx vertx, VertxTestContext testContext) {
-        vertx.deployVerticle(new MainVerticle(APP_PORT, DB_NAME), testContext.succeeding(id -> {
-            this.connector = new DBConnector(vertx, DB_NAME);
-            this.connector.query("delete from service;")
-                    .onFailure(testContext::failNow)
-                    .onSuccess(result -> {
-                        prepareDb(vertx, testContext);
-                    });
-        }));
-
+        vertx.deployVerticle(new MainVerticle(APP_PORT, DB_NAME))
+                .compose(id -> {
+                    this.connector = new DBConnector(vertx, DB_NAME);
+                    return this.connector.query("delete from service;");
+                })
+                .onFailure(testContext::failNow)
+                .onSuccess(result ->
+                        prepareDb(vertx, testContext)
+                );
     }
 
     @AfterEach
     void tearDown(Vertx vertx, VertxTestContext testContext) {
-        vertx.close(shutdown -> {
+        vertx.close().onSuccess(shutdown -> {
             File dbFile = new File(DB_NAME);
             try {
                 Files.deleteIfExists(dbFile.toPath());
