@@ -30,6 +30,7 @@ public class MainVerticle extends AbstractVerticle {
     private ServiceStatusRepository serviceRepository;
     private ServiceStatusController serviceStatusController;
     private BackgroundPoller poller;
+
     private Integer port;
     private final String dbPath;
 
@@ -41,6 +42,10 @@ public class MainVerticle extends AbstractVerticle {
         this(port, DEFAULT_DB);
     }
 
+    public MainVerticle(String dbpath) {
+        this(DEFAULT_PORT, dbpath);
+    }
+
     public MainVerticle(int port, String dbPath) {
         this.port = port;
         this.dbPath = dbPath;
@@ -48,11 +53,25 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startFuture) {
-        ConfigRetriever retriever = ConfigRetriever.create(vertx, new ConfigRetrieverOptions()
-                .addStore(
-                        new ConfigStoreOptions().setType("env")
-                                .setConfig(new JsonObject().put("keys", new JsonArray().add("PORT")))
-                ));
+        final Router router = Router.router(vertx);
+        final DBConnector connector = new DBConnector(vertx, this.dbPath);
+        final WebClient webClient = WebClient.create(
+                vertx,
+                new WebClientOptions()
+                        .setFollowRedirects(true)
+                        .setVerifyHost(false)
+                        .setTrustAll(true)
+        );
+
+        JsonObject configKeys = new JsonObject().put("keys", new JsonArray().add("PORT"));
+
+        ConfigRetriever retriever = ConfigRetriever
+                .create(
+                        vertx,
+                        new ConfigRetrieverOptions().addStore(new ConfigStoreOptions()
+                                .setType("env")
+                                .setConfig(configKeys))
+                );
 
         retriever.getConfig()
                 .onFailure(err -> {
@@ -64,53 +83,55 @@ public class MainVerticle extends AbstractVerticle {
                     if (null != config.getInteger("PORT")) {
                         this.port = config.getInteger("PORT");
                     }
+                })
+                // Start DB connector
+                .compose(event ->
+                        connector.start()
+                )
+                .onFailure(err -> {
+                    log.error("Unable to connect to DB");
+                    startFuture.fail(err.getCause());
+                    vertx.close();
+                })
+                .onSuccess(event -> {
+                    log.info("Connection to DB successful");
 
-                    DBConnector connector = new DBConnector(vertx, this.dbPath);
-                    connector.start()
-                            .onFailure(err -> {
-                                log.error("Unable to connect to DB");
-                                startFuture.fail(err.getCause());
-                                vertx.close();
-                            })
-                            .onSuccess(event -> {
-                                log.info("Connection to DB successful");
-                                WebClient webClient = WebClient.create(vertx,
-                                        new WebClientOptions()
-                                                .setFollowRedirects(true)
-                                                .setVerifyHost(false)
-                                                .setTrustAll(true));
+                    serviceRepository = new ServiceStatusRepository(connector);
+                    serviceStatusController = new ServiceStatusController(serviceRepository);
+                    poller = new BackgroundPoller(serviceRepository, webClient);
 
-                                serviceRepository = new ServiceStatusRepository(connector);
-                                serviceStatusController = new ServiceStatusController(serviceRepository);
-                                poller = new BackgroundPoller(serviceRepository, webClient);
-
-                                Router router = Router.router(vertx);
-                                router.route().handler(BodyHandler.create());
-                                vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices());
-                                setRoutes(router);
-
-                                vertx.createHttpServer()
-                                        .requestHandler(router)
-                                        .listen(this.port)
-                                        .onSuccess(success -> {
-                                            log.info("KRY code test service started on port {}", this.port);
-                                            startFuture.complete();
-                                        })
-                                        .onFailure(cause -> {
-                                            log.error("Unable to start the service poller");
-                                            startFuture.fail(cause);
-                                            vertx.close();
-                                        });
-                            });
+                    router.route().handler(BodyHandler.create());
+                    vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices());
+                    setRoutes(router);
+                })
+                // Start the web server
+                .compose(event ->
+                        vertx.createHttpServer()
+                                .requestHandler(router)
+                                .listen(this.port)
+                )
+                .onSuccess(success -> {
+                    log.info("KRY code test service started on port {}", this.port);
+                    startFuture.complete();
+                })
+                .onFailure(cause -> {
+                    log.error("Unable to start the service poller");
+                    startFuture.fail(cause);
+                    vertx.close();
                 });
     }
 
     private void setRoutes(Router router) {
+        // Resource distribution handler
         router.route("/*").handler(StaticHandler.create());
+
+        // Cors
         router.routeWithRegex("\\/service(\\/.*)?").handler(
                 CorsHandler.create("^(https?:\\/\\/)?localhost(:[0-9]{1,5})?")
                         .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.DELETE, HttpMethod.OPTIONS)))
         );
+
+        // Routes
         router.get("/service").handler(this.serviceStatusController::serviceGet);
         router.post("/service").handler(this.serviceStatusController::servicePost);
         router.delete("/service/:name").handler(this.serviceStatusController::serviceDelete);
