@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Test" type="JUnit" factoryName="JUnit">
+    <module name="codetest.test" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="ALTERNATIVE_JRE_PATH" value="adopt-openjdk-11" />
+    <option name="PACKAGE_NAME" value="se.kry.codetest.integrationTests" />
+    <option name="MAIN_CLASS_NAME" value="" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="package" />
+    <method v="2">
+      <option name="Gradle.BeforeRunTask" enabled="true" tasks="compileJava compileTestJava" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="-x processResources -x test" />
+    </method>
+  </configuration>
+</component>

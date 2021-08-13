@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="true" type="JUnit" factoryName="JUnit">
+    <option name="MAIN_CLASS_NAME" value="" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="class" />
+    <method v="2">
+      <option name="Gradle.BeforeRunTask" enabled="true" tasks="compileJava compileTestJava" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="-x processResources -x test" />
+    </method>
+  </configuration>
+</component>
