@@ -27,12 +27,9 @@ public abstract class BaseMainVerticleTest {
         vertx.deployVerticle(new MainVerticle(APP_PORT, DB_NAME), testContext.succeeding(id -> {
             this.connector = new DBConnector(vertx, DB_NAME);
             this.connector.query("delete from service;")
-                    .setHandler(result -> {
-                        if (result.succeeded()) {
-                            prepareDb(vertx, testContext);
-                        } else {
-                            testContext.failNow(result.cause());
-                        }
+                    .onFailure(testContext::failNow)
+                    .onSuccess(result -> {
+                        prepareDb(vertx, testContext);
                     });
         }));
 
@@ -40,17 +37,15 @@ public abstract class BaseMainVerticleTest {
 
     @AfterEach
     void tearDown(Vertx vertx, VertxTestContext testContext) {
-        this.connector.getClient().close(event -> {
-            vertx.close(shutdown -> {
-                File dbFile = new File(DB_NAME);
-                try {
-                    Files.deleteIfExists(dbFile.toPath());
-                } catch (IOException ex) {
-                    log.error("Something went wrong when deleting the test db file. You might want to delete {} manually", DB_NAME);
-                    ex.printStackTrace();
-                }
-                testContext.completeNow();
-            });
+        vertx.close(shutdown -> {
+            File dbFile = new File(DB_NAME);
+            try {
+                Files.deleteIfExists(dbFile.toPath());
+            } catch (IOException ex) {
+                log.error("Something went wrong when deleting the test db file. You might want to delete {} manually", DB_NAME);
+                ex.printStackTrace();
+            }
+            testContext.completeNow();
         });
     }
 

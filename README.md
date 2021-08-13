@@ -1,5 +1,7 @@
 # KRY code assignment
 
+## Summary
+
 One of our developers built a simple service poller.
 The service consists of a backend service written in Vert.x (https://vertx.io/) that keeps a list of services (defined by a URL), and periodically does a HTTP GET to each and saves the response ("OK" or "FAIL").
 
@@ -32,7 +34,7 @@ Put the code in a git repo on GitHub and send us the link (alex.sadler@kry.se) w
 
 Good luck!
 
-# Building
+## Building
 We recommend using IntelliJ as it's what we use day to day at the KRY office.
 In intelliJ, choose
 ```
@@ -42,4 +44,28 @@ New -> New from existing sources -> Import project from external model -> Gradle
 You can also run gradle directly from the command line:
 ```
 ./gradlew clean run
+```
+
+/!\ The first build can be rather long due to the node-npm tasks.
+
+## Tests
+
+Run tests with gradle:
+
+```bash
+./gradlew test
+```
+
+To fasten the test execution, and if a previous full build (with js) was done, you can skip the `processResource` task
+
+```bash
+./gradlew test -x processResources
+```
+
+## Run
+
+Configure the program with ENV vars:
+
+```bash
+PORT=8080 # change the port the application listens
 ```

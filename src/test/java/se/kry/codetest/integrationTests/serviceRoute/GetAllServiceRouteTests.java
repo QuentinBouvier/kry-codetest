@@ -1,9 +1,7 @@
 package se.kry.codetest.integrationTests.serviceRoute;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxTestContext;
@@ -24,7 +22,7 @@ public class GetAllServiceRouteTests extends BaseMainVerticleTest {
         this.connector.query("insert into service (url, name, created_at) " +
                         "values ('https://example.com', 'example', " + date + "), " +
                         "('https://foo.com', 'bar', " + date + ");")
-                .setHandler(testContext.succeeding(x -> testContext.completeNow()));
+                .onSuccess(x -> testContext.completeNow());
     }
 
     @Test

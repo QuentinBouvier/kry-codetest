@@ -2,7 +2,9 @@ package se.kry.codetest.repository;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import org.joda.time.DateTime;
 import se.kry.codetest.DBConnector;
 import se.kry.codetest.model.ServiceStatus;
@@ -12,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class ServiceStatusRepository {
     final private DBConnector dbConnector;
@@ -27,23 +30,20 @@ public class ServiceStatusRepository {
      * @return A future holding a PollService instance or null if no service is found
      */
     public Future<ServiceStatus> findByName(String name) {
-        Future<ResultSet> query = dbConnector.query("SELECT * FROM service WHERE name = ? LIMIT 1", new JsonArray(Collections.singletonList(name)));
+        Future<RowSet<Row>> query = dbConnector.query("SELECT * FROM service WHERE name = ? LIMIT 1", new JsonArray(Collections.singletonList(name)));
 
-        Future<ServiceStatus> futureResult = Future.future();
+        return query.map(rows -> {
+            List<JsonObject> results = StreamSupport
+                    .stream(rows.spliterator(), false)
+                    .map(Row::toJson)
+                    .collect(Collectors.toList());
 
-        query.setHandler(queryResult -> {
-            if (queryResult.succeeded()) {
-                if (queryResult.result().getNumRows() > 0) {
-                    futureResult.complete(ServiceStatus.fromJson(queryResult.result().getRows().get(0)));
-                } else {
-                    futureResult.complete(null);
-                }
-            } else {
-                futureResult.fail(queryResult.cause());
+            if (results.isEmpty()) {
+                return null;
             }
-        });
 
-        return futureResult;
+            return ServiceStatus.fromJson(results.get(0));
+        });
     }
 
     /**
@@ -52,21 +52,13 @@ public class ServiceStatusRepository {
      * @return A future holding the list of found PollService
      */
     public Future<List<ServiceStatus>> findAll() {
-        Future<ResultSet> query = dbConnector.query("SELECT * FROM service");
+        Future<RowSet<Row>> query = dbConnector.query("SELECT * FROM service");
 
-        Future<List<ServiceStatus>> futureResult = Future.future();
-
-        query.setHandler(queryResult -> {
-            if (queryResult.succeeded()) {
-                futureResult.complete(
-                        queryResult.result().getRows().stream()
-                                .map(ServiceStatus::fromJson).collect(Collectors.toList()));
-            } else {
-                futureResult.fail(queryResult.cause());
-            }
-        });
-
-        return futureResult;
+        return query.map(rows ->
+                StreamSupport
+                        .stream(rows.spliterator(), false)
+                        .map(x -> ServiceStatus.fromJson(x.toJson()))
+                        .collect(Collectors.toList()));
     }
 
     /**
@@ -79,30 +71,16 @@ public class ServiceStatusRepository {
     public Future<Void> createOne(ServiceStatus service) {
         Future<ServiceStatus> findQuery = findByName(service.getName());
 
-        Future<Void> futureResult = Future.future();
+        return findQuery
+                .compose(serviceStatus -> {
+                    if (null != serviceStatus) {
+                        return Future.failedFuture(new InvalidParameterException("Service with this name already exist"));
+                    }
 
-        findQuery.setHandler(findResult -> {
-            if (findQuery.isComplete()) {
-                if (null != findQuery.result()) {
-                    futureResult.fail(new InvalidParameterException("Service with this name already exist"));
-                } else {
-                    Future<ResultSet> insertQuery = dbConnector.query("INSERT INTO service (url, name, created_at) values(?, ?, ?)",
+                    return dbConnector.query("INSERT INTO service (url, name, created_at) values(?, ?, ?)",
                             new JsonArray(Arrays.asList(service.getUrl(), service.getName(), new DateTime().getMillis())));
-
-                    insertQuery.setHandler(insertResult -> {
-                        if (insertQuery.succeeded()) {
-                            futureResult.complete();
-                        } else {
-                            futureResult.fail(insertResult.cause());
-                        }
-                    });
-                }
-            } else {
-                futureResult.fail(findResult.cause());
-            }
-        });
-
-        return futureResult;
+                })
+                .mapEmpty();
     }
 
     /**
@@ -116,32 +94,17 @@ public class ServiceStatusRepository {
     public Future<Void> setStatus(String name, String status) {
         Future<ServiceStatus> findQuery = findByName(name);
 
-        Future<Void> futureResult = Future.future();
-
-        findQuery.setHandler(findResult -> {
-            if (findQuery.succeeded()) {
-                if (null == findQuery.result()) {
-                    futureResult.fail(new InvalidParameterException("Service with this name does not exist"));
-                } else {
-                    Future<ResultSet> updateQuery = dbConnector.query(
+        return findQuery
+                .compose(serviceStatus -> {
+                    if (null == serviceStatus) {
+                        return Future.failedFuture(new InvalidParameterException("Service with this name does not exist"));
+                    }
+                    return dbConnector.query(
                             "UPDATE service SET status = ? WHERE name = ?",
                             new JsonArray(Arrays.asList(status, name))
                     );
-
-                    updateQuery.setHandler(insertResult -> {
-                        if (updateQuery.succeeded()) {
-                            futureResult.complete();
-                        } else {
-                            futureResult.fail(insertResult.cause());
-                        }
-                    });
-                }
-            } else {
-                futureResult.fail(findResult.cause());
-            }
-        });
-
-        return futureResult;
+                })
+                .mapEmpty();
     }
 
     /**
@@ -151,32 +114,14 @@ public class ServiceStatusRepository {
      * @return A future holding the success of the operation
      */
     public Future<Void> deleteByName(String name) {
-        Future<ResultSet> checkQuery = dbConnector.query(
-                "SELECT * FROM service WHERE name = ?",
-                new JsonArray(Collections.singletonList(name))
-        );
-        Future<ResultSet> query = dbConnector.query(
-                "DELETE FROM service WHERE name = ?",
-                new JsonArray(Collections.singletonList(name))
-        );
-
-        Future<Void> futureResult = Future.future();
-
-        checkQuery.setHandler(selectResult -> {
-            if(selectResult.failed()) {
-                futureResult.fail(selectResult.cause());
-            } else {
-                if (selectResult.result().getNumRows() > 0) {
-                    query.setHandler(deleteResult -> {
-                        if (deleteResult.succeeded()) futureResult.complete();
-                        else futureResult.fail(deleteResult.cause());
-                    });
-                } else {
-                    futureResult.fail(new InvalidParameterException("Service with this name does not exist"));
-                }
-            }
-        });
-
-        return futureResult;
+        return findByName(name)
+                .compose(serviceStatus -> {
+                    if (null == serviceStatus) {
+                        return Future.failedFuture(new InvalidParameterException("Service with this name does not exist"));
+                    }
+                    return dbConnector.query("DELETE FROM service WHERE name = ?",
+                            new JsonArray(Collections.singletonList(name)));
+                })
+                .mapEmpty();
     }
 }

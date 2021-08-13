@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.sqlclient.Row;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import se.kry.codetest.integrationTests.BaseMainVerticleTest;
@@ -12,6 +13,8 @@ import se.kry.codetest.integrationTests.BaseMainVerticleTest;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,7 +27,7 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
         long date = new Date().getTime();
         this.connector.query("insert into service (url, name, created_at) " +
                         "values ('https://example.com', '" + DELETE_SERVICE_NAME + "', " + date + ");")
-                .setHandler(testContext.succeeding(result -> testContext.completeNow()));
+                .onSuccess(result -> testContext.completeNow());
     }
 
     @Test
@@ -42,9 +45,13 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
 
                         // Asserts the entry was removed from base
                         this.connector.query("select * from service where name = '" + DELETE_SERVICE_NAME + "'")
-                                .setHandler(queryResult -> {
-                                    List<JsonObject> resultRows = queryResult.result().getRows();
-                                    assertEquals(0, (long) resultRows.size());
+                                .onSuccess(rows -> {
+                                    List<JsonObject> results = StreamSupport
+                                            .stream(rows.spliterator(), false)
+                                            .map(Row::toJson)
+                                            .collect(Collectors.toList());
+
+                                    assertEquals(0, (long) results.size());
 
                                     testContext.completeNow();
                                 });
@@ -53,9 +60,9 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
     }
 
     @Test
-    @DisplayName("DELETE /service/:name and get 400 if the service name does not exist")
+    @DisplayName("DELETE /service/:name and get 404 if the service name does not exist")
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
-    void route_service_as_delete_should_return_400_when_name_is_not_found(Vertx vertx, VertxTestContext testContext) {
+    void route_service_as_delete_should_return_404_when_name_is_not_found(Vertx vertx, VertxTestContext testContext) {
         // Act
         WebClient.create(vertx)
                 .delete(APP_PORT, "localhost", "/service/" + DIFFERENT_NAME)
@@ -63,25 +70,8 @@ public class DeleteServiceRouteTests extends BaseMainVerticleTest {
                     // Assert
                     testContext.verify(() -> {
                         // Asserts http response is BAD REQUEST
-                        assertEquals(400, response.statusCode());
-                        assertEquals("Service with this name does not exist", response.body().toString());
-                        testContext.completeNow();
-                    });
-                }));
-    }
-
-    @Test
-    @DisplayName("DELETE /service/:name and get 404 if the service name was not provided")
-    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
-    void route_service_as_delete_should_return_404_when_name_is_not_provided(Vertx vertx, VertxTestContext testContext) {
-        // Act
-        WebClient.create(vertx)
-                .delete(APP_PORT, "localhost", "/service/")
-                .send(testContext.succeeding(response -> {
-                    // Assert
-                    testContext.verify(() -> {
-                        // Asserts http response is NOT FOUND
                         assertEquals(404, response.statusCode());
+                        assertEquals("Service with this name does not exist", response.body().toString());
                         testContext.completeNow();
                     });
                 }));

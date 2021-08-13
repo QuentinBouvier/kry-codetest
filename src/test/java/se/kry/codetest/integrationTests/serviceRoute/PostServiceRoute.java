@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.sqlclient.Row;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,7 +19,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -45,9 +48,12 @@ public class PostServiceRoute extends BaseMainVerticleTest {
 
                     // Assert (2)
                     this.connector.query("select * from service where name = '" + randomName + "';")
-                            .setHandler(result -> {
+                            .onSuccess(rows -> {
                                 testContext.verify(() -> {
-                                    List<JsonObject> results = result.result().getRows();
+                                    List<JsonObject> results = StreamSupport
+                                            .stream(rows.spliterator(), false)
+                                            .map(Row::toJson)
+                                            .collect(Collectors.toList());
                                     assertEquals(1, (long) results.size());
                                     assertEquals(randomName, results.get(0).getString("name"));
 
@@ -69,24 +75,21 @@ public class PostServiceRoute extends BaseMainVerticleTest {
         newService.setUrl("https://bar.com");
         newService.setName(randomName);
         this.connector.query("insert into service (url, name, created_at) values ('https://foo.com', '" + randomName + "', " + date + ")")
-                .setHandler(queryResult -> {
-                    if (queryResult.failed()) {
-                        testContext.failNow(queryResult.cause());
-                    } else {
-                        // Act
+                // Act
+                .compose(rows ->
                         WebClient.create(vertx)
                                 .post(APP_PORT, "localhost", "/service")
-                                .sendJson(newService, testContext.succeeding(response -> {
-                                    // Assert
-                                    testContext.verify(() -> {
-                                       assertEquals(400, response.statusCode());
-                                       assertEquals("Service with this name already exist", response.body().toString());
-                                       testContext.completeNow();
-                                    });
-                                }));
-                    }
-                });
-
+                                .sendJsonObject(newService.toJson())
+                )
+                // Assert
+                .onSuccess(response -> {
+                    testContext.verify(() -> {
+                        assertEquals(400, response.statusCode());
+                        assertEquals("Service with this name already exist", response.body().toString());
+                        testContext.completeNow();
+                    });
+                })
+                .onFailure(testContext::failNow);
     }
 
     @ParameterizedTest(name = "POST /service and get 400 because the url \"{0}\" is invalid")
@@ -103,14 +106,15 @@ public class PostServiceRoute extends BaseMainVerticleTest {
 
         // Act
         client.post(APP_PORT, "localhost", "/service")
-                .sendJson(bodyAsJson, testContext.succeeding(response -> {
-                    // Assert (1)
+                .sendJsonObject(bodyAsJson)
+                // Assert
+                .onSuccess(response -> {
                     testContext.verify(() -> {
                         assertEquals(400, response.statusCode());
                         assertEquals("The provided url is invalid", response.bodyAsString());
                         testContext.completeNow();
                     });
-                }));
+                });
     }
 
     @ParameterizedTest(name = "POST /service and get 400 when {1} is missing")
@@ -123,7 +127,7 @@ public class PostServiceRoute extends BaseMainVerticleTest {
         // Act
         WebClient.create(vertx)
                 .post(APP_PORT, "localhost", "/service")
-                .sendJson(bodyAsJson, testContext.succeeding(response -> {
+                .sendJsonObject(bodyAsJson, testContext.succeeding(response -> {
                     // Assert
                     testContext.verify(() -> {
                         assertEquals(400, response.statusCode());

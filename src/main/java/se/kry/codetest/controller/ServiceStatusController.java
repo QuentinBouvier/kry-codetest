@@ -30,16 +30,17 @@ public class ServiceStatusController {
         if (newService.isComplete()) {
             if (newService.isUrlValid()) {
                 serviceRepository.createOne(newService)
-                        .setHandler(repoResponse -> {
-                            if (repoResponse.failed()) {
-                                if (repoResponse.cause() instanceof InvalidParameterException) {
-                                    req.response().setStatusCode(400).end(repoResponse.cause().getMessage());
-                                } else {
-                                    log.error("Error: {}", repoResponse.cause().getMessage());
-                                    repoResponse.cause().printStackTrace();
-                                    req.response().setStatusCode(500).end(repoResponse.cause().getMessage());
-                                }
-                            } else req.response().setStatusCode(201).end();
+                        .onFailure(cause -> {
+                            if (cause instanceof InvalidParameterException) {
+                                req.response().setStatusCode(400).end(cause.getMessage());
+                            } else {
+                                log.error("Error: {}", cause.getMessage());
+                                cause.printStackTrace();
+                                req.response().setStatusCode(500).end(cause.getMessage());
+                            }
+                        })
+                        .onSuccess(repoResult -> {
+                            req.response().setStatusCode(201).end();
                         });
             } else {
                 req.response().setStatusCode(400).end("The provided url is invalid");
@@ -51,23 +52,23 @@ public class ServiceStatusController {
 
     public void serviceGet(RoutingContext req) {
         log.info("GET /service HTTP received");
-        serviceRepository.findAll().setHandler(repoResult -> {
-            if (repoResult.failed()) {
-                log.error("Error: {}", repoResult.cause().getMessage());
-                repoResult.cause().printStackTrace();
-                req.response().setStatusCode(500).end(repoResult.cause().getMessage());
-            } else {
-                List<JsonObject> jsonServices = repoResult.result()
-                        .stream()
-                        .map(ServiceStatus::toJson)
-                        .collect(Collectors.toList());
+        serviceRepository.findAll()
+                .onFailure(cause -> {
+                    log.error("Error: {}", cause.getMessage());
+                    cause.printStackTrace();
+                    req.response().setStatusCode(500).end(cause.getMessage());
+                })
+                .onComplete(repoResult -> {
+                    List<JsonObject> jsonServices = repoResult.result()
+                            .stream()
+                            .map(ServiceStatus::toJson)
+                            .collect(Collectors.toList());
 
-                req.response()
-                        .putHeader("content-type", "application/json")
-                        .setStatusCode(200)
-                        .end(new JsonArray(jsonServices).encode());
-            }
-        });
+                    req.response()
+                            .putHeader("content-type", "application/json")
+                            .setStatusCode(200)
+                            .end(new JsonArray(jsonServices).encode());
+                });
     }
 
     public void serviceDelete(RoutingContext req) {
@@ -78,19 +79,19 @@ public class ServiceStatusController {
         if (null == serviceName) {
             req.response().setStatusCode(400).end("name path param is mandatory");
         } else {
-            serviceRepository.deleteByName(serviceName).setHandler(repoResult -> {
-                if (repoResult.succeeded()) {
-                    req.response().setStatusCode(204).end();
-                } else {
-                    if (repoResult.cause() instanceof InvalidParameterException) {
-                        req.response().setStatusCode(400).end(repoResult.cause().getMessage());
-                    } else {
-                        log.error("Error: {}", repoResult.cause().getMessage());
-                        repoResult.cause().printStackTrace();
-                        req.response().setStatusCode(500).end(repoResult.cause().getMessage());
-                    }
-                }
-            });
+            serviceRepository.deleteByName(serviceName)
+                    .onFailure(cause -> {
+                        if (cause instanceof InvalidParameterException) {
+                            req.response().setStatusCode(404).end(cause.getMessage());
+                        } else {
+                            log.error("Error: {}", cause.getMessage());
+                            cause.printStackTrace();
+                            req.response().setStatusCode(500).end(cause.getMessage());
+                        }
+                    })
+                    .onSuccess(repoResult -> {
+                        req.response().setStatusCode(204).end();
+                    });
         }
     }
 }

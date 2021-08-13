@@ -2,11 +2,10 @@ package se.kry.codetest.model;
 
 import io.vertx.core.json.JsonObject;
 import lombok.Data;
+import lombok.NonNull;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.joda.time.DateTime;
-
-import java.util.Date;
 
 @Data
 public class ServiceStatus {
@@ -44,7 +43,7 @@ public class ServiceStatus {
      * @param source The json providing the values
      * @return A PollService Instance
      */
-    public static ServiceStatus fromJson(JsonObject source) {
+    public static ServiceStatus fromJson(@NonNull final JsonObject source) {
         ServiceStatus output = new ServiceStatus();
         output.setName(source.getString("name"));
         output.setUrl(source.getString("url"));
