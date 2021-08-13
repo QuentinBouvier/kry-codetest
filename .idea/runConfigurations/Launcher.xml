@@ -1,9 +1,8 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Launcher" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="ALTERNATIVE_JRE_PATH" value="adopt-openjdk-1.8" />
-    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <envs>
-      <env name="PORT" value=" 8080" />
+      <env name="PORT" value="8080" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="io.vertx.core.Launcher" />
     <module name="codetest.main" />
