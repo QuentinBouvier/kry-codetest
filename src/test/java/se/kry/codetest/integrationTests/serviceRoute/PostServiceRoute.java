@@ -98,7 +98,8 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
                 .onFailure(testContext::failNow);
     }
 
-    @ParameterizedTest(name = "POST /service and get 400 because the url \"{0}\" is invalid")
+    @ParameterizedTest(name = "POST /service and get 400 with invalid url \"{0}\"")
+    @DisplayName("POST /service and get 400 when url is invalid")
     @ValueSource(strings = {"www.example.com", "example.com", "123", "toto", "toto/"})
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_post_should_return_400_when_url_is_invalid(String url, Vertx vertx, VertxTestContext testContext) {
@@ -125,6 +126,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
     }
 
     @ParameterizedTest(name = "POST /service and get 400 when {1} is missing")
+    @DisplayName("POST /service and get 400 when mandatory field is missing")
     @MethodSource("incompleteRequestBody")
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_post_should_return_400_if_mandatory_parameter_is_missing(ServiceStatus body, String unusedName, Vertx vertx, VertxTestContext testContext) {
