@@ -132,4 +132,19 @@ public class ServiceStatusRepository {
                 })
                 .ignoreElement();
     }
+
+    public Completable update(String oldName, ServiceStatus newService) {
+        return findByName(oldName)
+                .isEmpty()
+                .flatMap(serviceEmpty -> {
+                    if (serviceEmpty) {
+                        return Single.error(new InvalidParameterException("Service with this name does not exist"));
+                    }
+
+                    return dbConnector.query("UPDATE service SET name = ?, url = ?, status = 'UNKNOWN' where name = ?",
+                            new JsonArray(Arrays.asList(newService.getName(), newService.getUrl(), oldName)))
+                            .toSingle();
+                })
+                .ignoreElement();
+    }
 }

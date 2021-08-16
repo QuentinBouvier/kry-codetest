@@ -1,11 +1,15 @@
 package se.kry.codetest.controller;
 
+import io.reactivex.Completable;
+import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.StringUtils;
+import se.kry.codetest.exception.BadRequestException;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
@@ -103,6 +107,45 @@ public class ServiceStatusController {
     }
 
     public void serviceUpdate(RoutingContext req) {
-        throw new NotImplementedException();
+        try {
+            String serviceName = req.pathParam("name");
+            log.info("HTTP PUT received on /service/{}", serviceName);
+
+            JsonObject jsonBody = req.getBodyAsJson();
+            log.debug("\twith body: {}", jsonBody.toString());
+            ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
+
+            Single.fromCallable(() -> StringUtils.isNotBlank(serviceName))
+                    .flatMapCompletable(hasName -> { // validate input
+                        if (!hasName)
+                            return Completable.error(new BadRequestException("name path param is mandatory"));
+                        if (!newService.isValid())
+                            return Completable.error(new BadRequestException("url and name are mandatory"));
+                        if (!newService.isUrlValid())
+                            return Completable.error(new BadRequestException("The url provided is invalid"));
+
+                        return this.serviceRepository.update(serviceName, newService);
+                    })
+                    .onErrorResumeNext(cause -> {
+                        if (cause instanceof BadRequestException) {
+                            req.response().setStatusCode(400).end(cause.getMessage());
+                            return Completable.never();
+                        } else {
+                            return Completable.error(cause);
+                        }
+                    })
+                    .doOnComplete(() -> { // Exec request
+                        req.response().setStatusCode(200).end();
+                    })
+                    .doOnError(cause -> {
+                        log.error("Error: {}", cause.getMessage());
+                        cause.printStackTrace();
+                        req.response().setStatusCode(500).end(cause.getMessage());
+                    })
+                    .subscribe();
+
+        } catch (DecodeException ex) {
+            req.response().setStatusCode(400).end("Invalid payload. Must be json");
+        }
     }
 }
