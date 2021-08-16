@@ -126,6 +126,7 @@ public class MainVerticle extends AbstractVerticle {
         router.get("/service").handler(this.serviceStatusController::serviceGet);
         router.post("/service").handler(this.serviceStatusController::servicePost);
         router.delete("/service/:name").handler(this.serviceStatusController::serviceDelete);
+        router.put("/service/:name").handler(this.serviceStatusController::serviceUpdate);
     }
 
     private void handleInitError(String message) {

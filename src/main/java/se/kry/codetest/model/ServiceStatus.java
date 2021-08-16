@@ -12,14 +12,14 @@ public class ServiceStatus {
     private String url;
     private String name;
     private DateTime createdAt;
-    private String status;
+    private ServiceStatusValueEnum status;
 
     /**
      * Checks if the PollService has the required fields to be inserted in the Base
      *
      * @return True if OK
      */
-    public boolean isComplete() {
+    public boolean isValid() {
         return ObjectUtils.allNotNull(url, name);
     }
 
@@ -28,7 +28,7 @@ public class ServiceStatus {
                 .put("url", url)
                 .put("name", name)
                 .put("created_at", null != createdAt ? createdAt.getMillis() : null)
-                .put("status", status);
+                .put("status", null != status ? status.name() : null);
     }
 
     public boolean isUrlValid() {
@@ -50,7 +50,7 @@ public class ServiceStatus {
         if (null != source.getInteger("created_at")) {
             output.setCreatedAt(new DateTime(source.getLong("created_at")));
         }
-        output.setStatus(source.getString("status"));
+        output.setStatus(ServiceStatusValueEnum.valueOfOrDefault(source.getString("status")));
 
         return output;
     }

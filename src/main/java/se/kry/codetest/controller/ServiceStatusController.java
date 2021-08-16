@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.NotImplementedException;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
@@ -30,7 +31,7 @@ public class ServiceStatusController {
 
         ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
 
-        if (!newService.isComplete()) {
+        if (!newService.isValid()) {
             req.response().setStatusCode(400).end("url and name are mandatory");
         } else {
             if (!newService.isUrlValid()) {
@@ -99,5 +100,9 @@ public class ServiceStatusController {
                     );
             req.addEndHandler(event -> action.dispose());
         }
+    }
+
+    public void serviceUpdate(RoutingContext req) {
+        throw new NotImplementedException();
     }
 }
