@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Launcher" type="Application" factoryName="Application" nameIsGenerated="true">
+  <configuration default="false" name="Launcher - no front build" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="adopt-openjdk-1.8" />
     <envs>
       <env name="PORT" value="8080" />
@@ -9,7 +9,7 @@
     <option name="PROGRAM_PARAMETERS" value="run se.kry.codetest.MainVerticle" />
     <option name="VM_PARAMETERS" value="-Dorg.slf4j.simpleLogger.defaultLogLevel=INFO" />
     <method v="2">
-      <option name="Make" enabled="true" />
+      <option name="Gradle.BeforeRunTask" enabled="true" tasks="compileJava" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="-x processResources -x test" />
     </method>
   </configuration>
 </component>

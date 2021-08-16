@@ -1,19 +1,20 @@
 package se.kry.codetest;
 
-import io.vertx.config.ConfigRetriever;
+import io.reactivex.Completable;
+import io.reactivex.Single;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CorsHandler;
-import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.reactivex.config.ConfigRetriever;
+import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.client.WebClient;
+import io.vertx.reactivex.ext.web.handler.BodyHandler;
+import io.vertx.reactivex.ext.web.handler.CorsHandler;
+import io.vertx.reactivex.ext.web.handler.StaticHandler;
 import lombok.extern.slf4j.Slf4j;
 import se.kry.codetest.controller.ServiceStatusController;
 import se.kry.codetest.repository.ServiceStatusRepository;
@@ -52,7 +53,7 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void start(Promise<Void> startFuture) {
+    public Completable rxStart() {
         final Router router = Router.router(vertx);
         final DBConnector connector = new DBConnector(vertx, this.dbPath);
         final WebClient webClient = WebClient.create(
@@ -73,28 +74,21 @@ public class MainVerticle extends AbstractVerticle {
                                 .setConfig(configKeys))
                 );
 
-        retriever.getConfig()
-                .onFailure(err -> {
-                    log.error("Unable to retrieve the config");
-                    startFuture.fail(err.getCause());
-                    vertx.close();
-                })
-                .onSuccess(config -> {
-                    if (null != config.getInteger("PORT")) {
-                        this.port = config.getInteger("PORT");
+        return retriever.rxGetConfig()
+                .flatMap(config -> {
+                    Integer configPort = config.getInteger("PORT");
+                    if (null != configPort) {
+                        log.info("Custom port requested by user: {}", configPort);
+                        this.port = configPort;
                     }
+                    return Single.just(config);
                 })
-                // Start DB connector
-                .compose(event ->
-                        connector.start()
-                )
-                .onFailure(err -> {
-                    log.error("Unable to connect to DB");
-                    startFuture.fail(err.getCause());
-                    vertx.close();
-                })
-                .onSuccess(event -> {
+                .doOnError(error -> handleInitError("Unable to retrieve the config"))
+                .flatMap(config -> connector.start().toSingleDefault(true))
+                .doOnError(error -> handleInitError("Unable to initialize DB"))
+                .flatMap(upstream -> {
                     log.info("Connection to DB successful");
+                    log.debug("Starting services");
 
                     serviceRepository = new ServiceStatusRepository(connector);
                     serviceStatusController = new ServiceStatusController(serviceRepository);
@@ -103,22 +97,19 @@ public class MainVerticle extends AbstractVerticle {
                     router.route().handler(BodyHandler.create());
                     vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices());
                     setRoutes(router);
+                    log.debug("Services started");
+
+                    return Single.just(true);
                 })
-                // Start the web server
-                .compose(event ->
-                        vertx.createHttpServer()
-                                .requestHandler(router)
-                                .listen(this.port)
-                )
-                .onSuccess(success -> {
-                    log.info("KRY code test service started on port {}", this.port);
-                    startFuture.complete();
+                .flatMapCompletable(upstream -> {
+                    log.debug("Starting server...");
+                    return vertx.createHttpServer()
+                            .requestHandler(router)
+                            .rxListen(this.port)
+                            .ignoreElement();
                 })
-                .onFailure(cause -> {
-                    log.error("Unable to start the service poller");
-                    startFuture.fail(cause);
-                    vertx.close();
-                });
+                .doOnComplete(() -> log.info("KRY code test service started on port {}", this.port))
+                .doOnError(error -> handleInitError("Unable to start the service poller"));
     }
 
     private void setRoutes(Router router) {
@@ -135,5 +126,10 @@ public class MainVerticle extends AbstractVerticle {
         router.get("/service").handler(this.serviceStatusController::serviceGet);
         router.post("/service").handler(this.serviceStatusController::servicePost);
         router.delete("/service/:name").handler(this.serviceStatusController::serviceDelete);
+    }
+
+    private void handleInitError(String message) {
+        log.error(message);
+        vertx.close();
     }
 }

@@ -1,15 +1,15 @@
 package se.kry.codetest.integrationTests.serviceRoute;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
+import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import io.vertx.sqlclient.Row;
+import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.ext.web.client.HttpResponse;
+import io.vertx.reactivex.ext.web.client.WebClient;
+import io.vertx.reactivex.sqlclient.Row;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +33,8 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
         long date = new Date().getTime();
         this.connector.query("insert into service (url, name, created_at) " +
                         "values ('https://example.com', '" + DELETE_SERVICE_NAME + "', " + date + ");")
-                .onSuccess(result -> testContext.completeNow());
+                .doOnSuccess(result -> testContext.completeNow())
+                .subscribe();
     }
 
     @Test
@@ -41,18 +42,18 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_delete_should_remove_entry_when_name_is_found_and_return_204(Vertx vertx, VertxTestContext testContext) {
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
                 .delete(APP_PORT, BASE_HOST, "/service/" + DELETE_SERVICE_NAME)
-                .send();
+                .rxSend();
 
         // Assert
         responseFuture
-                .onSuccess(response -> testContext.verify(() ->
+                .doOnSuccess(response -> testContext.verify(() ->
                         assertEquals(204, response.statusCode()))
                 )
-                // Verify the DB
-                .compose(x -> this.connector.query("select * from service where name = '" + DELETE_SERVICE_NAME + "'"))
-                .onSuccess(rows -> testContext.verify(() -> {
+                // Verify in the DB
+                .flatMap(x -> this.connector.query("select * from service where name = '" + DELETE_SERVICE_NAME + "'").toSingle())
+                .doOnSuccess(rows -> testContext.verify(() -> {
                     List<JsonObject> results = StreamSupport
                             .stream(rows.spliterator(), false)
                             .map(Row::toJson)
@@ -61,7 +62,7 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
                     assertEquals(0, (long) results.size());
 
                     testContext.completeNow();
-                }));
+                })).subscribe();
     }
 
     @Test
@@ -69,12 +70,12 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_delete_should_return_404_when_name_is_not_found(Vertx vertx, VertxTestContext testContext) {
         // Act
-        Future<HttpResponse<Buffer>> httpResponse = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> httpResponse = WebClient.create(vertx)
                 .delete(APP_PORT, BASE_HOST, "/service/" + DIFFERENT_NAME)
-                .send();
+                .rxSend();
 
         // Assert
-        httpResponse.onSuccess(response -> {
+        httpResponse.doOnSuccess(response -> {
             // Assert
             testContext.verify(() -> {
                 // Asserts http response is BAD REQUEST
@@ -82,6 +83,6 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
                 assertEquals("Service with this name does not exist", response.body().toString());
                 testContext.completeNow();
             });
-        });
+        }).subscribe();
     }
 }

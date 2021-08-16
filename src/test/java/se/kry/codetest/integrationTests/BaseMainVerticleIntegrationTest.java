@@ -1,8 +1,8 @@
 package se.kry.codetest.integrationTests;
 
-import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.reactivex.core.Vertx;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,29 +26,31 @@ public abstract class BaseMainVerticleIntegrationTest {
 
     @BeforeEach
     void deploy_verticle(Vertx vertx, VertxTestContext testContext) {
-        vertx.deployVerticle(new MainVerticle(APP_PORT, DB_NAME))
-                .compose(id -> {
+        vertx.rxDeployVerticle(new MainVerticle(APP_PORT, DB_NAME))
+                .flatMapMaybe(id -> {
                     this.connector = new DBConnector(vertx, DB_NAME);
                     return this.connector.query("delete from service;");
                 })
-                .onFailure(testContext::failNow)
-                .onSuccess(result ->
+                .doOnError(testContext::failNow)
+                .doOnSuccess(result ->
                         prepareDb(vertx, testContext)
-                );
+                )
+                .subscribe();
     }
 
     @AfterEach
     void tearDown(Vertx vertx, VertxTestContext testContext) {
-        vertx.close().onSuccess(shutdown -> {
-            File dbFile = new File(DB_NAME);
-            try {
-                Files.deleteIfExists(dbFile.toPath());
-            } catch (IOException ex) {
-                log.error("Something went wrong when deleting the test db file. You might want to delete {} manually", DB_NAME);
-                ex.printStackTrace();
-            }
-            testContext.completeNow();
-        });
+        vertx.rxClose()
+                .doOnComplete(() -> {
+                    File dbFile = new File(DB_NAME);
+                    try {
+                        Files.deleteIfExists(dbFile.toPath());
+                    } catch (IOException ex) {
+                        log.error("Something went wrong when deleting the test db file. You might want to delete {} manually", DB_NAME);
+                        ex.printStackTrace();
+                    }
+                    testContext.completeNow();
+                }).subscribe();
     }
 
     protected void prepareDb(Vertx vertx, VertxTestContext testContext) {

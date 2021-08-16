@@ -1,13 +1,13 @@
 package se.kry.codetest.integrationTests;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
+import io.reactivex.Single;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.ext.web.client.HttpResponse;
+import io.vertx.reactivex.ext.web.client.WebClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,15 +23,16 @@ public class MainVerticleTest extends BaseMainVerticleIntegrationTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void start_http_server(Vertx vertx, VertxTestContext testContext) {
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
                 .get(APP_PORT, BASE_HOST, "/example")
-                .send();
+                .rxSend();
 
         // Assert
-        responseFuture.onSuccess(response -> testContext.verify(() -> {
-            assertEquals(404, response.statusCode());
-            testContext.completeNow();
-        }));
+        responseFuture
+                .doOnSuccess(response -> testContext.verify(() -> {
+                    assertEquals(404, response.statusCode());
+                    testContext.completeNow();
+                })).subscribe();
     }
 
     @Test
@@ -39,14 +40,15 @@ public class MainVerticleTest extends BaseMainVerticleIntegrationTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void root_route_returns_200_http_response(Vertx vertx, VertxTestContext testContext) {
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
                 .get(APP_PORT, BASE_HOST, "/")
-                .send();
+                .rxSend();
 
         // Assert
-        responseFuture.onSuccess(response -> testContext.verify(() -> {
-            assertEquals(200, response.statusCode());
-            testContext.completeNow();
-        }));
+        responseFuture
+                .doOnSuccess(response -> testContext.verify(() -> {
+                    assertEquals(200, response.statusCode());
+                    testContext.completeNow();
+                })).subscribe();
     }
 }

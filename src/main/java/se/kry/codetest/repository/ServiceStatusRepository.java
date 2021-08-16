@@ -1,10 +1,12 @@
 package se.kry.codetest.repository;
 
-import io.vertx.core.Future;
+import io.reactivex.Completable;
+import io.reactivex.Maybe;
+import io.reactivex.Single;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
+import io.vertx.reactivex.sqlclient.Row;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.DateTime;
 import se.kry.codetest.DBConnector;
 import se.kry.codetest.model.ServiceStatus;
@@ -16,10 +18,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+@Slf4j
 public class ServiceStatusRepository {
     final private DBConnector dbConnector;
 
     public ServiceStatusRepository(DBConnector connector) {
+        log.debug("Instantiating ServiceStatusRepository...");
         this.dbConnector = connector;
     }
 
@@ -29,21 +33,20 @@ public class ServiceStatusRepository {
      * @param name The name to search against
      * @return A future holding a PollService instance or null if no service is found
      */
-    public Future<ServiceStatus> findByName(String name) {
-        Future<RowSet<Row>> query = dbConnector.query("SELECT * FROM service WHERE name = ? LIMIT 1", new JsonArray(Collections.singletonList(name)));
+    public Maybe<ServiceStatus> findByName(String name) {
+        return dbConnector.query("SELECT * FROM service WHERE name = ? LIMIT 1", new JsonArray(Collections.singletonList(name)))
+                .flatMap(rows -> {
+                    List<JsonObject> results = StreamSupport
+                            .stream(rows.spliterator(), false)
+                            .map(Row::toJson)
+                            .collect(Collectors.toList());
 
-        return query.map(rows -> {
-            List<JsonObject> results = StreamSupport
-                    .stream(rows.spliterator(), false)
-                    .map(Row::toJson)
-                    .collect(Collectors.toList());
+                    if (results.isEmpty()) {
+                        return Maybe.empty();
+                    }
 
-            if (results.isEmpty()) {
-                return null;
-            }
-
-            return ServiceStatus.fromJson(results.get(0));
-        });
+                    return Maybe.just(ServiceStatus.fromJson(results.get(0)));
+                });
     }
 
     /**
@@ -51,14 +54,17 @@ public class ServiceStatusRepository {
      *
      * @return A future holding the list of found PollService
      */
-    public Future<List<ServiceStatus>> findAll() {
-        Future<RowSet<Row>> query = dbConnector.query("SELECT * FROM service");
+    public Single<List<ServiceStatus>> findAll() {
+        return dbConnector.query("SELECT * FROM service")
+                .flatMap(rows -> {
+                            List<ServiceStatus> rowsJson = StreamSupport
+                                    .stream(rows.spliterator(), false)
+                                    .map(x -> ServiceStatus.fromJson(x.toJson()))
+                                    .collect(Collectors.toList());
 
-        return query.map(rows ->
-                StreamSupport
-                        .stream(rows.spliterator(), false)
-                        .map(x -> ServiceStatus.fromJson(x.toJson()))
-                        .collect(Collectors.toList()));
+                            return Maybe.just(rowsJson);
+                        })
+                .toSingle();
     }
 
     /**
@@ -66,21 +72,22 @@ public class ServiceStatusRepository {
      *
      * @param service The service to insert
      * @return A future holding the success of the operation
+     *
      * @throws InvalidParameterException A service with this name already exists
      */
-    public Future<Void> createOne(ServiceStatus service) {
-        Future<ServiceStatus> findQuery = findByName(service.getName());
-
-        return findQuery
-                .compose(serviceStatus -> {
-                    if (null != serviceStatus) {
-                        return Future.failedFuture(new InvalidParameterException("Service with this name already exist"));
+    public Completable createOne(ServiceStatus service) {
+        return findByName(service.getName())
+                .isEmpty()
+                .flatMap(serviceEmpty -> {
+                    if (!serviceEmpty) {
+                        return Single.error(new InvalidParameterException("Service with this name already exist"));
+                    } else {
+                        return dbConnector.query("INSERT INTO service (url, name, created_at) values(?, ?, ?)",
+                                        new JsonArray(Arrays.asList(service.getUrl(), service.getName(), new DateTime().getMillis())))
+                                .toSingle();
                     }
-
-                    return dbConnector.query("INSERT INTO service (url, name, created_at) values(?, ?, ?)",
-                            new JsonArray(Arrays.asList(service.getUrl(), service.getName(), new DateTime().getMillis())));
                 })
-                .mapEmpty();
+                .ignoreElement();
     }
 
     /**
@@ -89,22 +96,22 @@ public class ServiceStatusRepository {
      * @param name   The name to search against in the base
      * @param status The status to set
      * @return A future holding the success of the operation
+     *
      * @throws InvalidParameterException No service with this name was found
      */
-    public Future<Void> setStatus(String name, String status) {
-        Future<ServiceStatus> findQuery = findByName(name);
-
-        return findQuery
-                .compose(serviceStatus -> {
-                    if (null == serviceStatus) {
-                        return Future.failedFuture(new InvalidParameterException("Service with this name does not exist"));
+    public Completable setStatus(String name, String status) {
+        return findByName(name)
+                .isEmpty()
+                .flatMap(serviceEmpty -> {
+                    if (serviceEmpty) {
+                        return Single.error(new InvalidParameterException("Service with this name does not exist"));
                     }
                     return dbConnector.query(
                             "UPDATE service SET status = ? WHERE name = ?",
                             new JsonArray(Arrays.asList(status, name))
-                    );
+                    ).toSingle();
                 })
-                .mapEmpty();
+                .ignoreElement();
     }
 
     /**
@@ -113,15 +120,16 @@ public class ServiceStatusRepository {
      * @param name the name to search against
      * @return A future holding the success of the operation
      */
-    public Future<Void> deleteByName(String name) {
+    public Completable deleteByName(String name) {
         return findByName(name)
-                .compose(serviceStatus -> {
-                    if (null == serviceStatus) {
-                        return Future.failedFuture(new InvalidParameterException("Service with this name does not exist"));
+                .isEmpty()
+                .flatMap(serviceEmpty -> {
+                    if (serviceEmpty) {
+                        return Single.error(new InvalidParameterException("Service with this name does not exist"));
                     }
                     return dbConnector.query("DELETE FROM service WHERE name = ?",
-                            new JsonArray(Collections.singletonList(name)));
+                            new JsonArray(Collections.singletonList(name))).toSingle();
                 })
-                .mapEmpty();
+                .ignoreElement();
     }
 }

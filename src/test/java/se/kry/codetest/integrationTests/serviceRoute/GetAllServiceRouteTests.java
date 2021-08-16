@@ -1,14 +1,14 @@
 package se.kry.codetest.integrationTests.serviceRoute;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
+import io.reactivex.Single;
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.ext.web.client.HttpResponse;
+import io.vertx.reactivex.ext.web.client.WebClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +28,7 @@ public class GetAllServiceRouteTests extends BaseMainVerticleIntegrationTest {
         this.connector.query("insert into service (url, name, created_at) " +
                         "values ('https://example.com', 'example', " + date + "), " +
                         "('https://foo.com', 'bar', " + date + ");")
-                .onSuccess(x -> testContext.completeNow());
+                .doOnSuccess(x -> testContext.completeNow()).subscribe();
     }
 
     @Test
@@ -36,17 +36,17 @@ public class GetAllServiceRouteTests extends BaseMainVerticleIntegrationTest {
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_get_should_send_a_200_status_with_a_list(Vertx vertx, VertxTestContext testContext) {
         // Act
-        Future<HttpResponse<Buffer>> httpResponseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> httpResponseFuture = WebClient.create(vertx)
                 .get(APP_PORT, BASE_HOST, "/service")
-                .send();
+                .rxSend();
 
         // Assert
         httpResponseFuture
-                .onSuccess(response -> testContext.verify(() -> {
+                .doOnSuccess(response -> testContext.verify(() -> {
                     JsonArray body = response.bodyAsJsonArray(); // Must not throw
                     assertEquals(200, response.statusCode());
                     assertEquals(2, body.stream().count());
                     testContext.completeNow();
-                }));
+                })).subscribe();
     }
 }

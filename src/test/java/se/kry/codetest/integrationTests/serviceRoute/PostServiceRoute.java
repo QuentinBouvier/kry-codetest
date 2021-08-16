@@ -1,16 +1,16 @@
 package se.kry.codetest.integrationTests.serviceRoute;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
+import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
+import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.ext.web.client.HttpResponse;
+import io.vertx.reactivex.ext.web.client.WebClient;
+import io.vertx.reactivex.sqlclient.Row;
+import io.vertx.reactivex.sqlclient.RowSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,18 +45,18 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
         JsonObject bodyAsJson = body.toJson();
 
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
                 .post(APP_PORT, BASE_HOST, "/service")
-                .sendJson(bodyAsJson);
+                .rxSendJson(bodyAsJson);
 
         // Assert
         responseFuture
-                .onSuccess(response -> testContext.verify(() ->
+                .doOnSuccess(response -> testContext.verify(() ->
                         assertEquals(201, response.statusCode()))
                 )
                 // Verify the DB
-                .compose(x -> this.connector.query("select * from service where name = '" + randomName + "';"))
-                .onSuccess(rows -> testContext.verify(() -> {
+                .flatMap(x -> this.connector.query("select * from service where name = '" + randomName + "';").toSingle())
+                .doOnSuccess(rows -> testContext.verify(() -> {
                     List<JsonObject> results = StreamSupport
                             .stream(rows.spliterator(), false)
                             .map(Row::toJson)
@@ -66,7 +66,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
                     assertEquals(randomName, results.get(0).getString("name"));
 
                     testContext.completeNow();
-                }));
+                })).subscribe();
     }
 
     @Test
@@ -79,23 +79,27 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
         final ServiceStatus newService = new ServiceStatus();
         newService.setUrl("https://bar.com");
         newService.setName(randomName);
-        Future<RowSet<Row>> prepareQuery = this.connector.query("insert into service (url, name, created_at) values ('https://foo.com', '" + randomName + "', " + date + ")");
+        Single<RowSet<Row>> prepareQuery =
+                this.connector.query("insert into service (url, name, created_at) values ('https://foo.com', '" + randomName + "', " + date + ")")
+                        .toSingle();
 
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = prepareQuery
-                .compose(rows -> WebClient.create(vertx)
-                        .post(APP_PORT, BASE_HOST, "/service")
-                        .sendJsonObject(newService.toJson())
+        Single<HttpResponse<Buffer>> responseFuture = prepareQuery
+                .flatMap(rows ->
+                        WebClient.create(vertx)
+                                .post(APP_PORT, BASE_HOST, "/service")
+                                .rxSendJsonObject(newService.toJson())
                 );
 
         // Assert
         responseFuture
-                .onSuccess(response -> testContext.verify(() -> {
+                .doOnSuccess(response -> testContext.verify(() -> {
                     assertEquals(400, response.statusCode());
                     assertEquals("Service with this name already exist", response.body().toString());
                     testContext.completeNow();
                 }))
-                .onFailure(testContext::failNow);
+                .doOnError(testContext::failNow)
+                .subscribe();
     }
 
     @ParameterizedTest(name = "POST /service and get 400 with invalid url \"{0}\"")
@@ -111,18 +115,19 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
         JsonObject bodyAsJson = body.toJson();
 
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
                 .post(APP_PORT, BASE_HOST, "/service")
-                .sendJsonObject(bodyAsJson);
+                .rxSendJsonObject(bodyAsJson);
 
         // Assert
         responseFuture
-                .onSuccess(response -> testContext.verify(() -> {
+                .doOnSuccess(response -> testContext.verify(() -> {
                     assertEquals(400, response.statusCode());
                     assertEquals("The provided url is invalid", response.bodyAsString());
                     testContext.completeNow();
                 }))
-                .onFailure(testContext::failNow);
+                .doOnError(testContext::failNow)
+                .subscribe();
     }
 
     @ParameterizedTest(name = "POST /service and get 400 when {1} is missing")
@@ -134,18 +139,19 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
         JsonObject bodyAsJson = body.toJson();
 
         // Act
-        Future<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
                 .post(APP_PORT, BASE_HOST, "/service")
-                .sendJsonObject(bodyAsJson);
+                .rxSendJsonObject(bodyAsJson);
 
         // Assert
         responseFuture
-                .onSuccess(response -> testContext.verify(() -> {
+                .doOnSuccess(response -> testContext.verify(() -> {
                     assertEquals(400, response.statusCode());
                     assertEquals("url and name are mandatory", response.bodyAsString());
                     testContext.completeNow();
                 }))
-                .onFailure(testContext::failNow);
+                .doOnError(testContext::failNow)
+                .subscribe();
     }
 
     static Stream<Arguments> incompleteRequestBody() {
