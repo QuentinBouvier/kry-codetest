@@ -2,7 +2,6 @@ package se.kry.codetest.controller;
 
 import io.reactivex.Completable;
 import io.reactivex.Single;
-import io.reactivex.disposables.Disposable;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -10,6 +9,7 @@ import io.vertx.reactivex.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import se.kry.codetest.exception.BadRequestException;
+import se.kry.codetest.exception.ControllerException;
 import se.kry.codetest.model.ServiceStatus;
 import se.kry.codetest.repository.ServiceStatusRepository;
 
@@ -36,78 +36,87 @@ public class ServiceStatusController {
 
             ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
 
-            if (!newService.isValid()) {
-                req.response().setStatusCode(400).end("url and name are mandatory");
-            } else {
-                if (!newService.isUrlValid()) {
-                    req.response().setStatusCode(400).end("The provided url is invalid");
-                } else {
-                    Disposable action = serviceRepository.createOne(newService)
-                            .subscribe(
-                                    () -> req.response().setStatusCode(201).end(),
-                                    cause -> {
-                                        if (cause instanceof InvalidParameterException) {
-                                            req.response().setStatusCode(400).end(cause.getMessage());
-                                        } else {
-                                            log.error("Error: {}", cause.getMessage());
-                                            cause.printStackTrace();
-                                            req.response().setStatusCode(500).end(cause.getMessage());
-                                        }
-                                    }
-                            );
-                    req.addEndHandler(event -> action.dispose());
-                }
-            }
+            Single.fromCallable(() -> !newService.isValid())
+                    .flatMapCompletable(serviceIsInvalid -> {
+                        if (serviceIsInvalid)
+                            return Completable.error(new BadRequestException("url and name are mandatory"));
+                        if (!newService.isUrlValid())
+                            return Completable.error(new BadRequestException("The provided url is invalid"));
+
+                        return serviceRepository.createOne(newService);
+                    })
+                    .onErrorResumeNext(cause -> {
+                        if (cause instanceof ControllerException) {
+                            req.response().setStatusCode(((ControllerException) cause).getCode()).end(cause.getMessage());
+                            return Completable.never();
+                        }
+                        if (cause instanceof InvalidParameterException) {
+                            req.response().setStatusCode(400).end(cause.getMessage());
+                            return Completable.never();
+                        }
+                        return Completable.error(cause);
+                    })
+                    .doOnError(cause -> {
+                        log.error("Error: {}", cause.getMessage());
+                        cause.printStackTrace();
+                        req.response().setStatusCode(500).end(cause.getMessage());
+                    })
+                    .doOnComplete(() -> req.response().setStatusCode(201).end()).subscribe();
         } catch (DecodeException ex) {
-            req.response().setStatusCode(400).end("Invalid payload. Must be json");
+            req.response().setStatusCode(400).end("Invalid payload format. Must be json");
         }
     }
 
     public void serviceGet(RoutingContext req) {
         log.info("HTTP GET received on /service");
-        Disposable action = serviceRepository.findAll()
-                .subscribe(
-                        repoResult -> {
-                            List<JsonObject> jsonServices = repoResult
-                                    .stream()
-                                    .map(ServiceStatus::toJson)
-                                    .collect(Collectors.toList());
+        serviceRepository.findAll()
+                .doOnSuccess(serviceStatusList -> {
+                    List<JsonObject> jsonServices = serviceStatusList
+                            .stream()
+                            .map(ServiceStatus::toJson)
+                            .collect(Collectors.toList());
 
-                            req.response()
-                                    .putHeader("content-type", "application/json")
-                                    .setStatusCode(200)
-                                    .end(new JsonArray(jsonServices).encode());
-                        },
-                        cause -> {
-                            log.error("Error: {}", cause.getMessage());
-                            cause.printStackTrace();
-                            req.response().setStatusCode(500).end(cause.getMessage());
-                        });
-        req.addEndHandler(event -> action.dispose());
+                    req.response()
+                            .putHeader("content-type", "application/json")
+                            .setStatusCode(200)
+                            .end(new JsonArray(jsonServices).encode());
+                })
+                .doOnError(cause -> {
+                    log.error("Error: {}", cause.getMessage());
+                    cause.printStackTrace();
+                    req.response().setStatusCode(500).end(cause.getMessage());
+                })
+                .subscribe();
     }
 
     public void serviceDelete(RoutingContext req) {
         String serviceName = req.pathParam("name");
         log.info("HTTP DELETE received on /service/{}", serviceName);
 
-        if (null == serviceName) {
-            req.response().setStatusCode(400).end("name path param is mandatory");
-        } else {
-            Disposable action = serviceRepository.deleteByName(serviceName)
-                    .subscribe(
-                            () -> req.response().setStatusCode(204).end(),
-                            cause -> {
-                                if (cause instanceof InvalidParameterException) {
-                                    req.response().setStatusCode(404).end(cause.getMessage());
-                                } else {
-                                    log.error("Error: {}", cause.getMessage());
-                                    cause.printStackTrace();
-                                    req.response().setStatusCode(500).end(cause.getMessage());
-                                }
-                            }
-                    );
-            req.addEndHandler(event -> action.dispose());
-        }
+        Single.fromCallable(() -> StringUtils.isNotBlank(serviceName))
+                .flatMapCompletable(hasServiceName -> {
+                    if (!hasServiceName)
+                        return Completable.error(new BadRequestException("name path param is mandatory"));
+
+                    return serviceRepository.deleteByName(serviceName);
+                })
+                .onErrorResumeNext(cause -> {
+                    if (cause instanceof ControllerException) {
+                        req.response().setStatusCode(((ControllerException) cause).getCode()).end(cause.getMessage());
+                        return Completable.never();
+                    }
+                    if (cause instanceof InvalidParameterException) {
+                        req.response().setStatusCode(404).end(cause.getMessage());
+                        return Completable.never();
+                    }
+                    return Completable.error(cause);
+                })
+                .doOnError(cause -> {
+                    log.error("Error: {}", cause.getMessage());
+                    cause.printStackTrace();
+                    req.response().setStatusCode(500).end(cause.getMessage());
+                })
+                .doOnComplete(() -> req.response().setStatusCode(204).end()).subscribe();
     }
 
     public void serviceUpdate(RoutingContext req) {
@@ -138,9 +147,9 @@ public class ServiceStatusController {
                             return Completable.error(cause);
                         }
                     })
-                    .doOnComplete(() -> { // Exec request
-                        req.response().setStatusCode(200).end();
-                    })
+                    .doOnComplete(() ->
+                            req.response().setStatusCode(200).end()
+                    )
                     .doOnError(cause -> {
                         log.error("Error: {}", cause.getMessage());
                         cause.printStackTrace();
@@ -149,7 +158,7 @@ public class ServiceStatusController {
                     .subscribe();
 
         } catch (DecodeException ex) {
-            req.response().setStatusCode(400).end("Invalid payload. Must be json");
+            req.response().setStatusCode(400).end("Invalid payload format. Must be json");
         }
     }
 }
