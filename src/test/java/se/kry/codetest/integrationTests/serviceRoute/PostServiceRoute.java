@@ -154,6 +154,26 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
                 .subscribe();
     }
 
+    @Test
+    @DisplayName("POST /service/ returns 400 if the payload is not JSON")
+    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
+    void route_service_as_put_should_return_http_400_if_body_is_not_json(Vertx vertx, VertxTestContext testContext) {
+        // Arrange
+        String body = "foobar";
+
+        // Act
+        Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
+                .post(APP_PORT, BASE_HOST, "/service")
+                .rxSendBuffer(Buffer.buffer(body));
+
+        // Assert
+        responseFuture
+                .doOnSuccess(response -> testContext.verify(() -> {
+                    assertEquals(400, response.statusCode());
+                    testContext.completeNow();
+                })).subscribe();
+    }
+
     static Stream<Arguments> incompleteRequestBody() {
         ServiceStatus noUrl = new ServiceStatus();
         noUrl.setName("foo");

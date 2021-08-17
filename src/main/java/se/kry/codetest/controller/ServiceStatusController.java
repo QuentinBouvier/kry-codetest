@@ -28,34 +28,38 @@ public class ServiceStatusController {
     }
 
     public void servicePost(RoutingContext req) {
-        JsonObject jsonBody = req.getBodyAsJson();
+        try {
+            JsonObject jsonBody = req.getBodyAsJson();
 
-        log.info("HTTP POST received on /service");
-        log.debug("\twith body: {}", jsonBody.toString());
+            log.info("HTTP POST received on /service");
+            log.debug("\twith body: {}", jsonBody.toString());
 
-        ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
+            ServiceStatus newService = ServiceStatus.fromJson(jsonBody);
 
-        if (!newService.isValid()) {
-            req.response().setStatusCode(400).end("url and name are mandatory");
-        } else {
-            if (!newService.isUrlValid()) {
-                req.response().setStatusCode(400).end("The provided url is invalid");
+            if (!newService.isValid()) {
+                req.response().setStatusCode(400).end("url and name are mandatory");
             } else {
-                Disposable action = serviceRepository.createOne(newService)
-                        .subscribe(
-                                () -> req.response().setStatusCode(201).end(),
-                                cause -> {
-                                    if (cause instanceof InvalidParameterException) {
-                                        req.response().setStatusCode(400).end(cause.getMessage());
-                                    } else {
-                                        log.error("Error: {}", cause.getMessage());
-                                        cause.printStackTrace();
-                                        req.response().setStatusCode(500).end(cause.getMessage());
+                if (!newService.isUrlValid()) {
+                    req.response().setStatusCode(400).end("The provided url is invalid");
+                } else {
+                    Disposable action = serviceRepository.createOne(newService)
+                            .subscribe(
+                                    () -> req.response().setStatusCode(201).end(),
+                                    cause -> {
+                                        if (cause instanceof InvalidParameterException) {
+                                            req.response().setStatusCode(400).end(cause.getMessage());
+                                        } else {
+                                            log.error("Error: {}", cause.getMessage());
+                                            cause.printStackTrace();
+                                            req.response().setStatusCode(500).end(cause.getMessage());
+                                        }
                                     }
-                                }
-                        );
-                req.addEndHandler(event -> action.dispose());
+                            );
+                    req.addEndHandler(event -> action.dispose());
+                }
             }
+        } catch (DecodeException ex) {
+            req.response().setStatusCode(400).end("Invalid payload. Must be json");
         }
     }
 

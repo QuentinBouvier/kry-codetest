@@ -165,7 +165,7 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
     @DisplayName("PUT /service:name returns 400 when url is invalid")
     @ValueSource(strings = {"www.example.com", "example.com", "123", "toto", "toto/"})
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
-    void route_service_as_post_should_return_400_when_url_is_invalid(String url, Vertx vertx, VertxTestContext testContext) {
+    void route_service_as_put_should_return_400_when_url_is_invalid(String url, Vertx vertx, VertxTestContext testContext) {
         // Arrange
         JsonObject body = new JsonObject()
                 .put("name", "foo")
