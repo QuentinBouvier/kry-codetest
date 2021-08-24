@@ -29,40 +29,33 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-import axios from 'axios';
 import AddServiceComponent from './AddServiceComponent.vue';
+import { ServiceStatusService } from '@/service/ServiceStatusService';
+import { Inject } from 'vue-property-decorator';
+import { ServiceStatus } from '@/model/ServiceStatus';
 
 Vue.registerHooks(['mounted']);
-
-interface ServiceStatusDto {
-  url: string;
-  name: string;
-  // eslint-disable-next-line camelcase
-  created_at: number;
-  status: string;
-}
-
-interface ServiceStatus {
-  url: string;
-  name: string;
-  createdAt: Date;
-  status: string;
-}
 
 @Options({
   components: { AddService: AddServiceComponent }
 })
 export default class PollerComponent extends Vue {
+  @Inject('serviceStatusService') readonly serviceStatusService!: ServiceStatusService;
+
   services: ServiceStatus[] = [];
   showAddForm = false;
   tagClass = {
     OK: 'is-success',
     FAIL: 'is-danger',
     UNKNOWN: 'is-info'
-  }
+  };
 
   async mounted(): Promise<void> {
     this.services = await this.getServices();
+    this.addEvents();
+  }
+
+  addEvents(): void {
     this.emitter.on('service-added', async () => {
       this.showAddForm = false;
       this.services = await this.getServices();
@@ -73,28 +66,13 @@ export default class PollerComponent extends Vue {
   }
 
   async getServices(): Promise<ServiceStatus[]> {
-    const response = await axios({
-      method: 'get',
-      url: '/service'
-    });
-    return response.data.map((x: ServiceStatusDto) => {
-      return {
-        url: x.url,
-        name: x.name,
-        createdAt: new Date(x.created_at),
-        status: x.status
-      };
-    });
+    return this.serviceStatusService.getAll();
   }
 
   async deleteService(name: string): Promise<void> {
-    const response = await axios({
-      url: `/service/${name}`,
-      method: 'delete',
-      responseType: 'text'
-    });
+    const success = await this.serviceStatusService.delete(name);
 
-    if (response.status === 204) {
+    if (success) {
       this.services = await this.getServices();
     }
   }

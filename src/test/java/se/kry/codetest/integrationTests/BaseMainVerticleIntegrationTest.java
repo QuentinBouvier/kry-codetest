@@ -22,6 +22,8 @@ public abstract class BaseMainVerticleIntegrationTest {
     static final protected int APP_PORT = 8084;
     static final protected String BASE_HOST = "localhost";
 
+    protected final static String BASE_URI = "/api/v1/";
+
     protected DBConnector connector = null;
 
     @BeforeEach

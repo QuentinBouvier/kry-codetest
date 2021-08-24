@@ -32,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ExtendWith(VertxExtension.class)
 public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
+    private final static String URI = BASE_URI + "/service/%s";
+
     private final ServiceStatus defaultService = ServiceStatus.fromJson(new JsonObject()
             .put("url", "https://example.com")
             .put("name", "foo")
@@ -61,7 +63,7 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .put(APP_PORT, BASE_HOST, String.format("/service/%s", defaultService.getName()))
+                .put(APP_PORT, BASE_HOST, String.format(URI, defaultService.getName()))
                 .rxSendJsonObject(newStatus);
 
         // Assert
@@ -96,7 +98,7 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .put(APP_PORT, BASE_HOST, String.format("/service/%s", defaultService.getName()))
+                .put(APP_PORT, BASE_HOST, String.format(URI, defaultService.getName()))
                 .rxSendJsonObject(newStatus);
 
         // Assert
@@ -129,7 +131,7 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .put(APP_PORT, BASE_HOST, String.format("/service/%s", defaultService.getName()))
+                .put(APP_PORT, BASE_HOST, String.format(URI, defaultService.getName()))
                 .rxSendBuffer(Buffer.buffer(body));
 
         // Assert
@@ -150,7 +152,7 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .put(APP_PORT, BASE_HOST, String.format("/service/%s", defaultService.getName()))
+                .put(APP_PORT, BASE_HOST, String.format(URI, defaultService.getName()))
                 .rxSendJsonObject(bodyJson);
 
         // Assert
@@ -161,8 +163,8 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
                 })).subscribe();
     }
 
-    @ParameterizedTest(name = "PUT /service:name returns 400 with invalid url \"{0}\"")
-    @DisplayName("PUT /service:name returns 400 when url is invalid")
+    @ParameterizedTest(name = "PUT /service/:name returns 400 with invalid url \"{0}\"")
+    @DisplayName("PUT /service/:name returns 400 when url is invalid")
     @ValueSource(strings = {"www.example.com", "example.com", "123", "toto", "toto/"})
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     void route_service_as_put_should_return_400_when_url_is_invalid(String url, Vertx vertx, VertxTestContext testContext) {
@@ -173,14 +175,14 @@ public class PutServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .post(APP_PORT, BASE_HOST, "/service")
+                .put(APP_PORT, BASE_HOST, String.format(URI, defaultService.getName()))
                 .rxSendJsonObject(body);
 
         // Assert
         responseFuture
                 .doOnSuccess(response -> testContext.verify(() -> {
                     assertEquals(400, response.statusCode());
-                    assertEquals("The provided url is invalid", response.bodyAsString());
+                    assertEquals("The url provided is invalid", response.bodyAsString());
                     testContext.completeNow();
                 }))
                 .doOnError(testContext::failNow)

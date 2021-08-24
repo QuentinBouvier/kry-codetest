@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(VertxExtension.class)
 public class GetAllServiceRouteTests extends BaseMainVerticleIntegrationTest {
 
+    private final static String URI = BASE_URI + "/service";
+
     @Override
     protected void prepareDb(Vertx vertx, VertxTestContext testContext) {
         long date = new Date().getTime();
@@ -37,7 +39,7 @@ public class GetAllServiceRouteTests extends BaseMainVerticleIntegrationTest {
     void route_service_as_get_should_send_a_200_status_with_a_list(Vertx vertx, VertxTestContext testContext) {
         // Act
         Single<HttpResponse<Buffer>> httpResponseFuture = WebClient.create(vertx)
-                .get(APP_PORT, BASE_HOST, "/service")
+                .get(APP_PORT, BASE_HOST, URI)
                 .rxSend();
 
         // Assert

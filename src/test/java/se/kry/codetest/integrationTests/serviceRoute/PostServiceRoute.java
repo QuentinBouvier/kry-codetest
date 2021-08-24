@@ -33,6 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(VertxExtension.class)
 public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
+
+    private final static String URI = BASE_URI + "/service";
+
     @Test
     @DisplayName("POST /service and get 201 and a new service is added")
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
@@ -46,7 +49,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .post(APP_PORT, BASE_HOST, "/service")
+                .post(APP_PORT, BASE_HOST, URI)
                 .rxSendJson(bodyAsJson);
 
         // Assert
@@ -87,7 +90,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
         Single<HttpResponse<Buffer>> responseFuture = prepareQuery
                 .flatMap(rows ->
                         WebClient.create(vertx)
-                                .post(APP_PORT, BASE_HOST, "/service")
+                                .post(APP_PORT, BASE_HOST, URI)
                                 .rxSendJsonObject(newService.toJson())
                 );
 
@@ -116,7 +119,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .post(APP_PORT, BASE_HOST, "/service")
+                .post(APP_PORT, BASE_HOST, URI)
                 .rxSendJsonObject(bodyAsJson);
 
         // Assert
@@ -140,7 +143,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .post(APP_PORT, BASE_HOST, "/service")
+                .post(APP_PORT, BASE_HOST, URI)
                 .rxSendJsonObject(bodyAsJson);
 
         // Assert
@@ -163,7 +166,7 @@ public class PostServiceRoute extends BaseMainVerticleIntegrationTest {
 
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .post(APP_PORT, BASE_HOST, "/service")
+                .post(APP_PORT, BASE_HOST, URI)
                 .rxSendBuffer(Buffer.buffer(body));
 
         // Assert

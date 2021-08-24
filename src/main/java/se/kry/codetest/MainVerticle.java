@@ -113,20 +113,22 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     private void setRoutes(Router router) {
+        String apiPrefix = "/api/v1";
+
         // Resource distribution handler
         router.route("/*").handler(StaticHandler.create());
 
         // Cors
-        router.routeWithRegex("\\/service(\\/.*)?").handler(
+        router.routeWithRegex("\\/api\\/v1\\/service(\\/.*)?").handler(
                 CorsHandler.create("^(https?:\\/\\/)?localhost(:[0-9]{1,5})?")
                         .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.DELETE, HttpMethod.OPTIONS)))
         );
 
         // Routes
-        router.get("/service").handler(this.serviceStatusController::serviceGet);
-        router.post("/service").handler(this.serviceStatusController::servicePost);
-        router.delete("/service/:name").handler(this.serviceStatusController::serviceDelete);
-        router.put("/service/:name").handler(this.serviceStatusController::serviceUpdate);
+        router.get(apiPrefix + "/service").handler(this.serviceStatusController::serviceGet);
+        router.post(apiPrefix + "/service").handler(this.serviceStatusController::servicePost);
+        router.delete(apiPrefix + "/service/:name").handler(this.serviceStatusController::serviceDelete);
+        router.put(apiPrefix + "/service/:name").handler(this.serviceStatusController::serviceUpdate);
     }
 
     private void handleInitError(String message) {

@@ -27,7 +27,8 @@
 
 <script lang="ts">
 import { Vue } from 'vue-class-component';
-import axios from 'axios';
+import { Inject } from 'vue-property-decorator';
+import { ServiceStatusService } from '@/service/ServiceStatusService';
 
 interface AddServiceError {
   code: number;
@@ -35,6 +36,8 @@ interface AddServiceError {
 }
 
 export default class AddServiceComponent extends Vue {
+  @Inject('serviceStatusService') readonly serviceStatusService!: ServiceStatusService;
+
   nameValue = '';
   urlValue = '';
   hasError = false;
@@ -42,17 +45,9 @@ export default class AddServiceComponent extends Vue {
 
   async addService(): Promise<void> {
     try {
-      const response = await axios({
-        url: '/service',
-        method: 'post',
-        data: {
-          name: this.nameValue,
-          url: this.urlValue
-        },
-        responseType: 'text'
-      });
+      const success = this.serviceStatusService.add(this.nameValue, this.urlValue);
 
-      if (response.status === 201) {
+      if (success) {
         this.resetError();
         this.resetValues();
         this.emitter.emit('service-added');

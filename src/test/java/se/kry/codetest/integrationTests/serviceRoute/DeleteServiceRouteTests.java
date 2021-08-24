@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
     private static final String DELETE_SERVICE_NAME = "foo";
     private static final String DIFFERENT_NAME = "bar";
+    private static final String URI = BASE_URI + "/service/%s";
 
     @Override
     protected void prepareDb(Vertx vertx, VertxTestContext testContext) {
@@ -43,7 +44,7 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
     void route_service_as_delete_should_remove_entry_when_name_is_found_and_return_204(Vertx vertx, VertxTestContext testContext) {
         // Act
         Single<HttpResponse<Buffer>> responseFuture = WebClient.create(vertx)
-                .delete(APP_PORT, BASE_HOST, "/service/" + DELETE_SERVICE_NAME)
+                .delete(APP_PORT, BASE_HOST, String.format(URI, DELETE_SERVICE_NAME))
                 .rxSend();
 
         // Assert
@@ -71,7 +72,7 @@ public class DeleteServiceRouteTests extends BaseMainVerticleIntegrationTest {
     void route_service_as_delete_should_return_404_when_name_is_not_found(Vertx vertx, VertxTestContext testContext) {
         // Act
         Single<HttpResponse<Buffer>> httpResponse = WebClient.create(vertx)
-                .delete(APP_PORT, BASE_HOST, "/service/" + DIFFERENT_NAME)
+                .delete(APP_PORT, BASE_HOST, String.format(URI, DIFFERENT_NAME))
                 .rxSend();
 
         // Assert
