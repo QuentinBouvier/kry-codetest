@@ -30,7 +30,7 @@
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import AddServiceComponent from './AddServiceComponent.vue';
-import { ServiceStatusService } from '@/service/ServiceStatusService';
+import { StatusesService } from '@/service/StatusesService';
 import { Inject } from 'vue-property-decorator';
 import { ServiceStatus } from '@/model/ServiceStatus';
 
@@ -40,7 +40,7 @@ Vue.registerHooks(['mounted']);
   components: { AddService: AddServiceComponent }
 })
 export default class PollerComponent extends Vue {
-  @Inject('serviceStatusService') readonly serviceStatusService!: ServiceStatusService;
+  @Inject('statusesService') readonly statusesService!: StatusesService;
 
   services: ServiceStatus[] = [];
   showAddForm = false;
@@ -66,11 +66,11 @@ export default class PollerComponent extends Vue {
   }
 
   async getServices(): Promise<ServiceStatus[]> {
-    return this.serviceStatusService.getAll();
+    return this.statusesService.getAll();
   }
 
   async deleteService(name: string): Promise<void> {
-    const success = await this.serviceStatusService.delete(name);
+    const success = await this.statusesService.delete(name);
 
     if (success) {
       this.services = await this.getServices();

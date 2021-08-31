@@ -6,7 +6,7 @@
 import { Options, Vue } from 'vue-class-component';
 import PollerComponent from './components/PollerComponent.vue';
 import { Provide } from 'vue-property-decorator';
-import { ServiceStatusService } from '@/service/ServiceStatusService';
+import { StatusesService } from '@/service/StatusesService';
 
 @Options({
   components: {
@@ -14,7 +14,7 @@ import { ServiceStatusService } from '@/service/ServiceStatusService';
   }
 })
 export default class App extends Vue {
-  @Provide() serviceStatusService = new ServiceStatusService();
+  @Provide() statusesService = new StatusesService();
 }
 </script>
 

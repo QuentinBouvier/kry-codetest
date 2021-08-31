@@ -2,14 +2,11 @@ import axios from 'axios';
 import { ServiceStatus } from '@/model/ServiceStatus';
 import { ServiceStatusDto } from '@/dto/ServiceStatusDto';
 
-export class ServiceStatusService {
+export class StatusesService {
   url = '/api/v1/service';
 
   public async getAll(): Promise<ServiceStatus[]> {
-    const response = await axios({
-      method: 'get',
-      url: this.url
-    });
+    const response = await axios.get(this.url);
     return response.data.map((x: ServiceStatusDto) => {
       return {
         url: x.url,
@@ -21,9 +18,7 @@ export class ServiceStatusService {
   }
 
   public async delete(name: string): Promise<boolean> {
-    const response = await axios({
-      url: `${this.url}/${name}`,
-      method: 'delete',
+    const response = await axios.delete(`${this.url}/${name}`, {
       responseType: 'text'
     });
 
@@ -31,13 +26,10 @@ export class ServiceStatusService {
   }
 
   public async add(name: string, url: string): Promise<boolean> {
-    const response = await axios({
-      url: this.url,
-      method: 'post',
-      data: {
-        name: name,
-        url: url
-      },
+    const response = await axios.post(this.url, {
+      name: name,
+      url: url
+    }, {
       responseType: 'text'
     });
 
