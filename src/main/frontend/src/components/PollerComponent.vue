@@ -4,8 +4,12 @@
       <div class="is-flex is-flex-direction-column is-align-items-center">
         <h1 class="title">Kry Status Poller</h1>
         <button @click="showAddForm = true" v-show="!showAddForm" class="button mb-4">Add Service</button>
-        <AddService v-show="showAddForm"/>
-        <div class="services-container">
+        <AddService v-show="showAddForm"
+                    @service-added="onServiceAdded"
+                    @add-service-close="onAddServiceComponentClosed"
+        />
+        <Loader v-show="!ready"></Loader>
+        <div class="services-container" v-show="ready">
           <div v-for="service in services" :key="service.name" class="box">
             <div class="columns">
               <div class="column is-flex is-align-items-center">
@@ -30,6 +34,7 @@
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import AddServiceComponent from './AddServiceComponent.vue';
+import Loader from './static/Loader.vue';
 import { StatusesService } from '@/service/StatusesService';
 import { Inject } from 'vue-property-decorator';
 import { ServiceStatus } from '@/model/ServiceStatus';
@@ -37,32 +42,39 @@ import { ServiceStatus } from '@/model/ServiceStatus';
 Vue.registerHooks(['mounted']);
 
 @Options({
-  components: { AddService: AddServiceComponent }
+  components: {
+    AddService: AddServiceComponent,
+    Loader: Loader
+  }
 })
 export default class PollerComponent extends Vue {
   @Inject('statusesService') readonly statusesService!: StatusesService;
 
   services: ServiceStatus[] = [];
   showAddForm = false;
+  ready = false;
   tagClass = {
     OK: 'is-success',
     FAIL: 'is-danger',
     UNKNOWN: 'is-info'
   };
 
-  async mounted(): Promise<void> {
-    this.services = await this.getServices();
-    this.addEvents();
+  mounted(): void {
+    this.initData();
   }
 
-  addEvents(): void {
-    this.emitter.on('service-added', async () => {
-      this.showAddForm = false;
-      this.services = await this.getServices();
-    });
-    this.emitter.on('add-service-close', () => {
-      this.showAddForm = false;
-    });
+  async initData(): Promise<void> {
+    this.services = await this.getServices();
+    this.ready = true;
+  }
+
+  async onServiceAdded(): Promise<void> {
+    this.showAddForm = false;
+    this.services = await this.getServices();
+  }
+
+  onAddServiceComponentClosed(): void {
+    this.showAddForm = false;
   }
 
   async getServices(): Promise<ServiceStatus[]> {

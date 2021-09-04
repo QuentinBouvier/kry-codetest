@@ -26,7 +26,7 @@
 </template>
 
 <script lang="ts">
-import { Vue } from 'vue-class-component';
+import { Options, Vue } from 'vue-class-component';
 import { Inject } from 'vue-property-decorator';
 import { StatusesService } from '@/service/StatusesService';
 
@@ -35,6 +35,12 @@ interface AddServiceError {
   message: string;
 }
 
+@Options({
+  emits: {
+    'service-added': null,
+    'add-service-close': null
+  }
+})
 export default class AddServiceComponent extends Vue {
   @Inject('statusesService') readonly statusesService!: StatusesService;
 
@@ -50,7 +56,7 @@ export default class AddServiceComponent extends Vue {
       if (success) {
         this.resetError();
         this.resetValues();
-        this.emitter.emit('service-added');
+        this.$emit('service-added');
       }
     } catch (err) {
       this.setError(err.response.status, err.response.data);
@@ -76,7 +82,7 @@ export default class AddServiceComponent extends Vue {
   closeBox(): void {
     this.resetValues();
     this.resetError();
-    this.emitter.emit('add-service-close');
+    this.$emit('add-service-close');
   }
 }
 </script>
