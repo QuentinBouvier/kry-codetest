@@ -39,7 +39,7 @@ import { StatusesService } from '@/service/StatusesService';
 import { Inject } from 'vue-property-decorator';
 import { ServiceStatus } from '@/model/ServiceStatus';
 
-Vue.registerHooks(['mounted']);
+Vue.registerHooks(['mounted', ' unmounted']);
 
 @Options({
   components: {
@@ -59,13 +59,26 @@ export default class PollerComponent extends Vue {
     UNKNOWN: 'is-info'
   };
 
+  intervalPolling!: number;
+
   mounted(): void {
     this.initData();
+    this.initPolling();
+  }
+
+  unmounted(): void {
+    clearInterval(this.intervalPolling);
   }
 
   async initData(): Promise<void> {
     this.services = await this.getServices();
     this.ready = true;
+  }
+
+  initPolling(): void {
+    this.intervalPolling = setInterval(async () => {
+      this.services = await this.getServices();
+    }, 60 * 1000);
   }
 
   async onServiceAdded(): Promise<void> {
